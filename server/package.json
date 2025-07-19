@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently -k -n WEB,MASTRA \"bun --hot run src/server.ts\" \"mastra dev\"",
+    "dev": "concurrently -k -n WEB,MASTRA \"bun run prisma generate && bun --hot run src/server.ts\" \"mastra dev\"",
+    "generate": "prisma generate",
     "build": "mastra build",
     "start": "mastra start"
   },
