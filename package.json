@@ -1,0 +1,54 @@
+{
+  "name": "@athena-ai/server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently -k -n WEB,MASTRA \"bun --hot run src/server.ts\" \"mastra dev\"",
+    "build": "mastra build",
+    "start": "mastra start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "engines": {
+    "bun": ">=20.9.0"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^1.3.22",
+    "@mastra/core": "^0.10.10",
+    "@mastra/libsql": "^0.11.0",
+    "@mastra/loggers": "^0.10.3",
+    "@mastra/mcp": "^0.10.6",
+    "@mastra/memory": "^0.11.1",
+    "@mastra/pg": "^0.12.2",
+    "@mastra/rag": "^1.0.2",
+    "@prisma/client": "^6.11.1",
+    "@t3-oss/env-core": "^0.13.8",
+    "@trpc/client": "^11.4.3",
+    "@trpc/server": "^11.4.3",
+    "better-auth": "^1.2.12",
+    "cors": "^2.8.5",
+    "dd-trace": "^5.57.1",
+    "effect": "^3.16.12",
+    "exa-js": "^1.0.11",
+    "express": "^5.1.0",
+    "pino": "^9.7.0",
+    "pino-pretty": "^13.0.0",
+    "superjson": "^2.2.2",
+    "zod": "^3.25.74"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.0.6",
+    "@types/bun": "latest",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/pino": "^7.0.5",
+    "concurrently": "^9.2.0",
+    "mastra": "^0.10.10",
+    "prisma": "^6.11.1",
+    "typescript": "^5.8.3"
+  }
+}

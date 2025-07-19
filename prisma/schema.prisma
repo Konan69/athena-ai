@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  accounts      Account[]
+  sessions      Session[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model mastra_evals {
+  input         String
+  output        String
+  result        Json
+  agent_name    String
+  metric_name   String
+  instructions  String
+  test_info     Json?
+  global_run_id String
+  run_id        String
+  created_at    DateTime  @db.Timestamp(6)
+  createdAt     DateTime? @db.Timestamp(6)
+
+  @@ignore
+}
+
+model mastra_messages {
+  id         String   @id
+  thread_id  String
+  content    String
+  role       String
+  type       String
+  createdAt  DateTime @db.Timestamp(6)
+  resourceId String?
+}
+
+model mastra_resources {
+  id            String   @id
+  workingMemory String?
+  metadata      Json?
+  createdAt     DateTime @db.Timestamp(6)
+  updatedAt     DateTime @db.Timestamp(6)
+}
+
+model mastra_threads {
+  id         String   @id
+  resourceId String
+  title      String
+  metadata   String?
+  createdAt  DateTime @db.Timestamp(6)
+  updatedAt  DateTime @db.Timestamp(6)
+}
+
+model mastra_traces {
+  id           String   @id
+  parentSpanId String?
+  name         String
+  traceId      String
+  scope        String
+  kind         Int
+  attributes   Json?
+  status       Json?
+  events       Json?
+  links        Json?
+  other        String?
+  startTime    BigInt
+  endTime      BigInt
+  createdAt    DateTime @db.Timestamp(6)
+}
+
+model mastra_workflow_snapshot {
+  workflow_name String
+  run_id        String
+  resourceId    String?
+  snapshot      String
+  createdAt     DateTime @db.Timestamp(6)
+  updatedAt     DateTime @db.Timestamp(6)
+
+  @@unique([workflow_name, run_id])
+}
