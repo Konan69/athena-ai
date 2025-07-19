@@ -1,15 +1,27 @@
 {
   "name": "athena-ai",
   "private": true,
-  "workspaces": [
-    "client",
-    "server"
-  ],
   "scripts": {
-    "install:all": "npm install && cd client && pnpm install && cd ../server && bun install",
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:client": "cd client && pnpm dev",
-    "dev:server": "cd server && bun dev"
+    "install:root": "pnpm install --ignore-workspace --reporter=default",
+    "install:client": "pnpm --filter client install",
+    "install:server": "cd server && bun install --verbose",
+    "install:all": "echo '📦 Installing root...' && pnpm run install:root && echo '⚛️ Installing client...' && pnpm run install:client && echo '🚀 Installing server...' && pnpm run install:server && echo '✅ Done!'",
+    
+    "dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:client\"",
+    "dev:client": "pnpm --filter client dev",
+    "dev:server": "cd server && bun run dev",
+    
+    "build": "pnpm run build:client && pnpm run build:server",
+    "build:client": "pnpm --filter client build",
+    "build:server": "cd server && bun run build",
+    
+    "test": "pnpm run test:client && pnpm run test:server", 
+    "test:client": "pnpm --filter client test",
+    "test:server": "cd server && bun test",
+    
+    "lint": "pnpm run lint:client && pnpm run lint:server",
+    "lint:client": "pnpm --filter client lint",
+    "lint:server": "cd server && bun run lint"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
