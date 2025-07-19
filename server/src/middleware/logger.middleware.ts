@@ -19,6 +19,7 @@ const SENSITIVE_KEYS = [
   "jwt",
   "bearer",
 ];
+console.log(SENSITIVE_KEYS);
 
 /**
  * Recursively redacts sensitive information from objects.
