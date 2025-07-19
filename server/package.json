@@ -4,11 +4,11 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently -k -n WEB,MASTRA \"bun run prisma generate && bun --hot run src/server.ts\" \"mastra dev\"",
+    "dev": "concurrently -k -n WEB,MASTRA \" pnpm run src/server.ts\" \"mastra dev\"",
     "generate": "prisma generate",
     "mastra:build": "mastra build && cp .env .mastra/output/.env",
-    "build": "prisma generate && bun build src/server.ts --outdir dist --target bun && bun run mastra:build ",
-    "start": "bun run build && mastra start && bun dist/server.js"
+    "build": "prisma generate && tsc && pnpm mastra:build ",
+    "start": "pnpm build && mastra start && pnpx dlx dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -34,6 +34,7 @@
     "better-auth": "^1.2.12",
     "cors": "^2.8.5",
     "dd-trace": "^5.57.1",
+    "dotenv": "^17.2.0",
     "effect": "^3.16.12",
     "exa-js": "^1.0.11",
     "express": "^5.1.0",
@@ -47,7 +48,6 @@
     "@types/bun": "latest",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
-    "@types/pino": "^7.0.5",
     "concurrently": "^9.2.0",
     "mastra": "^0.10.10",
     "prisma": "^6.11.1",
