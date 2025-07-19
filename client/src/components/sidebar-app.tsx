@@ -23,14 +23,10 @@ import { NavUser } from "@/components/nav-user";
 import { MessageCircle, SquarePen, BookOpen } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
+import { useUserStore } from "@/store/user.store";
 
 // This is sample data.
 const data = {
-  user: {
-    name: "User",
-    email: "user@athena-ai.com",
-    avatar: "/avatar-1.png",
-  },
   recentChats: [
     {
       title: "Research Strategy Discussion",
@@ -196,7 +192,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarRail />
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   );

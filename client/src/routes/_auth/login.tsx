@@ -81,7 +81,7 @@ export default function SignIn() {
 
   const { mutate: signInWithGoogleMutation, isPending } = useMutation({
     mutationFn: signInWithGoogle,
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Auth state will be synced by the AuthProvider automatically
       router.navigate({ to: "/" });
     },
