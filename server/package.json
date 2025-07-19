@@ -1,13 +1,14 @@
 {
   "name": "@athena-ai/server",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently -k -n WEB,MASTRA \"bun run prisma generate && bun --hot run src/server.ts\" \"mastra dev\"",
     "generate": "prisma generate",
-    "build": "mastra build",
-    "start": "mastra start"
+    "mastra:build": "mastra build && cp .env .mastra/output/.env",
+    "build": "prisma generate && bun build src/server.ts --outdir dist --target bun && bun run mastra:build ",
+    "start": "bun run build && mastra start && bun dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -39,7 +40,7 @@
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0",
     "superjson": "^2.2.2",
-    "zod": "^3.25.74"
+    "zod": "^4.0.5"
   },
   "devDependencies": {
     "@biomejs/biome": "2.0.6",

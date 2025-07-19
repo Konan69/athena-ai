@@ -20,7 +20,7 @@ const PORT = env.PORT;
 // Middleware
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: env.CLIENT_URL,
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })

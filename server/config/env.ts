@@ -1,10 +1,14 @@
 import { createEnv } from "@t3-oss/env-core";
 // import { env as bunEnv } from "bun";
 import { z } from "zod";
+import { config } from "dotenv";
+
+config();
 
 export const env = createEnv({
   server: {
     PORT: z.string().default("3000"),
+    CLIENT_URL: z.string().url(),
     OPENAI_API_KEY: z.string().min(1),
     NODE_ENV: z.enum(["development", "production"]),
     EXA_API_KEY: z.string().min(1).optional(),

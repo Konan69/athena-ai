@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useSessionStore } from "@/store/session.store";
+import { env } from "@/config/env";
 
 export const Route = createFileRoute("/_auth/login")({
   beforeLoad: async () => {
@@ -62,7 +63,7 @@ const signInWithGoogle = async () => {
   const { data, error } = await signIn.social(
     {
       provider: "google",
-      callbackURL: "http://localhost:3000",
+      callbackURL: env.VITE_CLIENT_URL,
     },
     {
       onSuccess(context) {
