@@ -8,7 +8,7 @@
     "generate": "prisma generate",
     "mastra:build": "mastra build && cp .env .mastra/output/.env",
     "build": "prisma generate && pnpm tsc && pnpm mastra:build ",
-    "start": "pnpm build && mastra start && pnpm node dist/src/server.js"
+    "start": "mastra start && node dist/src/server.js"
   },
   "keywords": [],
   "author": "",
