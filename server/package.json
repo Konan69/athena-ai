@@ -8,7 +8,7 @@
     "generate": "prisma generate",
     "mastra:build": "mastra build",
     "build": "prisma generate && pnpm tsc && pnpm mastra:build ",
-    "start": "node dist/server.js && mastra start"
+    "start": "concurrently -k -n SERVER,MASTRA \" node dist/server.js\" \"mastra start\""
   },
   "packageManager": "pnpm@9.0.0",
   "keywords": [],
@@ -28,6 +28,7 @@
     "@t3-oss/env-core": "^0.13.8",
     "@trpc/client": "^11.4.3",
     "@trpc/server": "^11.4.3",
+    "concurrently": "^9.2.0",
     "better-auth": "^1.2.12",
     "cors": "^2.8.5",
     "dd-trace": "^5.57.1",
