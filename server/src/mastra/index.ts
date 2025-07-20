@@ -37,4 +37,10 @@ export const mastra = new Mastra({
     name: "Mastra",
     level: "info",
   }),
+
+  // Configure server settings for production
+  server: {
+    port: parseInt(env.MASTRA_PORT) || 4000,
+    host: "localhost",
+  },
 });

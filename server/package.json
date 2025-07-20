@@ -4,11 +4,11 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently -k -n WEB,MASTRA \" pnpm ts-node src/server.ts\" \"mastra dev\"",
+    "dev": "concurrently -k -n WEB,MASTRA \" pnpm ts-node src/server.ts\" \"MASTRA_PORT=4000 mastra dev\"",
     "generate": "prisma generate",
     "mastra:build": "mastra build",
-    "build": "prisma generate && pnpm tsc && pnpm mastra:build ",
-    "start": "concurrently -k -n SERVER,MASTRA \" node dist/server.js\" \"mastra start\""
+    "build": "prisma generate && pnpm tsc && pnpm mastra:build",
+    "start": "concurrently -k -n API,MASTRA \"node dist/server.js\" \"MASTRA_PORT=4000 mastra start\""
   },
   "packageManager": "pnpm@9.0.0",
   "keywords": [],
