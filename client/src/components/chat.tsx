@@ -24,6 +24,7 @@ export function Chat({ className, ...props }: ComponentPropsWithoutRef<"div">) {
   const { messages, input, handleInputChange, handleSubmit, status, stop } =
     useChat({
       api: `${env.VITE_API_BASE_URL}/api/chat`,
+
       // Configure to send only the latest message along with threadId and resourceId
       experimental_prepareRequestBody: (request) => {
         // Ensure messages array is not empty and get the last message
