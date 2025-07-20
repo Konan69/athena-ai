@@ -2,7 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 import { LibSQLStore } from "@mastra/libsql";
-import { env } from "@/config/env";
+import { env } from "@/src/config/env";
 import { PgVector } from "@mastra/pg";
 
 export const ragAgent = new Agent({

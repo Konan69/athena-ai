@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { logger } from "../../config/logger";
+import { logger } from "../config/logger";
 
 // Sensitive keys that should be redacted from logs
 const SENSITIVE_KEYS = [

@@ -1,18 +1,26 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "bundler",
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": false,
-    "strict": true,
     "skipLibCheck": true,
+    "target": "ES2022",
+    "lib": ["es2022"],
+    "allowJs": true,
+    "module": "NodeNext",
+    "rootDir": "./src",
     "outDir": "dist",
+    "resolveJsonModule": true,
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
     }
   },
-  "include": ["src/**/*", "config.ts", "config/**/*"]
+
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
 }

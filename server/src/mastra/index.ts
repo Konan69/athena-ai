@@ -6,7 +6,7 @@ import { PgVector, PostgresStore } from "@mastra/pg";
 import { researchAgent } from "./agents/research-agent";
 import { summarizerAgent } from "./agents/summarizer-agent";
 import { researchWorkflow } from "./workflows/research-workflow";
-import { env } from "../../config/env";
+import { env } from "../config/env";
 
 export const mcp = new MCPClient({
   servers: {

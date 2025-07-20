@@ -4,9 +4,9 @@
 import express from "express";
 import cors from "cors";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { appRouter } from "../config/trpc";
-import { logger } from "../config/logger";
-import { env } from "../config/env";
+import { appRouter } from "./config/trpc";
+import { logger } from "./config/logger";
+import { env } from "./config/env";
 import { requestLogger } from "./middleware/logger.middleware";
 import { errorHandler } from "./middleware/error.middleware";
 import { auth } from "./modules/auth";

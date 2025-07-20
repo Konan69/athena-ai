@@ -1,6 +1,6 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { env } from "../../../config/env";
+import { env } from "../../config/env";
 import Exa from "exa-js";
 
 // Interface for web search providers
@@ -71,7 +71,9 @@ export class ExaSearchProvider implements WebSearchProvider {
     } catch (error) {
       console.error("Exa search failed:", error);
       throw new Error(
-        `Exa search failed: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Exa search failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
       );
     }
   }
@@ -97,7 +99,9 @@ export class BraveSearchProvider implements WebSearchProvider {
       await this.rateLimiter.waitIfNeeded();
 
       const response = await fetch(
-        `${this.baseUrl}/web/search?q=${encodeURIComponent(query)}&count=${numResults}`,
+        `${this.baseUrl}/web/search?q=${encodeURIComponent(
+          query
+        )}&count=${numResults}`,
         {
           method: "GET",
           headers: {
@@ -114,7 +118,7 @@ export class BraveSearchProvider implements WebSearchProvider {
         );
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as any;
 
       return (
         data.web?.results?.map((result: any) => ({
@@ -127,7 +131,9 @@ export class BraveSearchProvider implements WebSearchProvider {
     } catch (error) {
       console.error("Brave search failed:", error);
       throw new Error(
-        `Brave search failed: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Brave search failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
       );
     }
   }
@@ -154,7 +160,11 @@ export class WebSearchContext {
     const provider = this.providers.get(this.configuredProvider);
     if (!provider) {
       throw new Error(
-        `Configured provider "${this.configuredProvider}" not found. Available providers: ${Array.from(this.providers.keys()).join(", ")}`
+        `Configured provider "${
+          this.configuredProvider
+        }" not found. Available providers: ${Array.from(
+          this.providers.keys()
+        ).join(", ")}`
       );
     }
 
