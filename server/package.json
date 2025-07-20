@@ -8,7 +8,7 @@
     "generate": "prisma generate",
     "mastra:build": "mastra build",
     "build": "prisma generate && pnpm tsc && pnpm mastra:build ",
-    "start": "mastra start && node dist/server.js"
+    "start": "node dist/server.js && mastra start"
   },
   "packageManager": "pnpm@9.0.0",
   "keywords": [],
