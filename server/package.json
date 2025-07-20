@@ -10,6 +10,7 @@
     "build": "prisma generate && pnpm tsc && pnpm mastra:build ",
     "start": "mastra start && node dist/src/server.js"
   },
+  "packageManager": "pnpm@9.0.0",
   "keywords": [],
   "author": "",
   "license": "ISC",
