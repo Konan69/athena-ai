@@ -2,8 +2,6 @@ import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 import { LibSQLStore } from "@mastra/libsql";
-import { env } from "@/src/config/env";
-import { PgVector } from "@mastra/pg";
 
 export const ragAgent = new Agent({
   name: "RAG Agent",
@@ -29,9 +27,4 @@ export const ragAgent = new Agent({
   `,
   model: openai("gpt-4o"),
   tools: {},
-  memory: new Memory({
-    vector: new PgVector({
-      connectionString: env.DATABASE_URL,
-    }),
-  }),
 });
