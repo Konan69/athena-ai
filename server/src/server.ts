@@ -1,41 +1,64 @@
 // Initialize Datadog tracer first
 // import "./observability/tracer";
-
-import express from "express";
-import cors from "cors";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { Hono } from "hono";
+import { serve } from "@hono/node-server";
+import { cors } from "hono/cors";
 import { appRouter } from "./config/trpc";
+import { trpcServer } from "@hono/trpc-server";
 import { logger } from "./config/logger";
 import { env } from "./config/env";
-import { requestLogger } from "./middleware/logger.middleware";
 import { errorHandler } from "./middleware/error.middleware";
 import { auth } from "./modules/auth";
 import { pathTraversalProtection } from "./middleware/security.middleware";
-import { registerModuleRouters } from "./modules";
-import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
 
-const app = express();
 const PORT = env.PORT;
+export const app = new Hono<{
+  Variables: {
+    user: typeof auth.$Infer.Session.user | null;
+    session: typeof auth.$Infer.Session.session | null;
+  };
+}>().use(logger);
 
 // Middleware
+
+app.use("*", async (c, next) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+
+  if (!session) {
+    c.set("user", null);
+    c.set("session", null);
+    return next();
+  }
+
+  c.set("user", session.user);
+  c.set("session", session.session);
+  return next();
+});
+
 app.use(
+  "/api/*",
   cors({
     origin: env.CLIENT_URL,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    maxAge: 600,
     credentials: true,
   })
 );
 
-app.all("/api/auth/*splat", toNodeHandler(auth));
+// TODO: Add typesafety for logger
+// app.use(requestLogger);
 
-app.use(express.json());
+app.on(["POST", "GET"], "/api/auth/*", (c) => {
+  return auth.handler(c.req.raw);
+});
+
 app.use(pathTraversalProtection);
-app.use(requestLogger);
 
 // tRPC middleware
 app.use(
-  "/trpc",
-  createExpressMiddleware({
+  "/trpc/*",
+  trpcServer({
     router: appRouter,
     createContext: () => ({
       logger,
@@ -43,24 +66,17 @@ app.use(
   })
 );
 
-// Register module routers
-registerModuleRouters(app);
-
 // Health check
-app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
-});
-
-app.get("/api/me", async (req, res) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
-  return res.json(session);
+app.get("/health", (c) => {
+  return c.json({ status: "ok" });
 });
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  logger.info(`Server running on http://localhost:${PORT}`);
+console.log(`Server is running on port http://localhost:${PORT}`);
+
+serve({
+  fetch: app.fetch,
+  port: parseInt(PORT),
 });

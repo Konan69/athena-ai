@@ -62,9 +62,6 @@ export function Chat({ className, ...props }: ComponentPropsWithoutRef<"div">) {
                 Chat with AI Assistant
               </h2>
               <p>Start a conversation by typing a message below.</p>
-              <p className="text-sm mt-2 text-muted-foreground">
-                Thread ID: {threadId}
-              </p>
             </div>
           ) : (
             messages.map((message) => {

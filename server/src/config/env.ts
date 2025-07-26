@@ -7,7 +7,7 @@ config();
 
 export const env = createEnv({
   server: {
-    PORT: z.string().default("3000"),
+    PORT: z.string().default("8080"),
     MASTRA_PORT: z.string().default("4000"),
     CLIENT_URL: z.string().url(),
     OPENAI_API_KEY: z.string().min(1),

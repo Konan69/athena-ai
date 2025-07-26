@@ -1,3 +1,5 @@
+import { appRouter } from "../config/trpc";
+
 export interface BaseRequest {
   id?: string;
   timestamp?: Date;
@@ -20,3 +22,4 @@ export interface SuccessResponse<T> extends BaseResponse {
 }
 
 export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+export type { appRouter };

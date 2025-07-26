@@ -1,24 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import superjson from "superjson";
-// import { createTRPCClient, httpBatchStreamLink } from "@trpc/client";
-// import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
-
-// function getUrl() {
-//   const base = (() => {
-//     if (typeof window !== "undefined") return "";
-//     return `http://localhost:${process.env.PORT ?? 3000}`;
-//   })();
-//   return `${base}/api/trpc`;
-// }
-
-// export const trpcClient = createTRPCClient<TRPCRouter>({
-//   links: [
-//     httpBatchStreamLink({
-//       transformer: superjson,
-//       url: getUrl(),
-//     }),
-//   ],
-// })
+import { trpc } from "@/config/trpc";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,15 +12,20 @@ const queryClient = new QueryClient({
 export function getContext() {
   return {
     queryClient,
-    // trpc: serverHelpers,
+    trpc,
   };
 }
 
-export function Provider({ children }: { children: React.ReactNode }) {
+// Use a named export for the Provider component
+export function TanStackQueryProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    // <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-    //   {children}
-    // </TRPCProvider>
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 }
+
+// Keep the old export for backward compatibility
+export const Provider = TanStackQueryProvider;

@@ -1,26 +1,29 @@
-import { Request, Response, NextFunction } from "express";
+import { Context } from "hono";
+import { Next } from "hono/types";
+import { createMiddleware } from "hono/factory";
 import { ZodError } from "zod";
-import { logger } from "../config/logger";
 
-export function errorHandler(
-  err: unknown,
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
-  logger.error("Request error:", err);
+export const errorHandler = createMiddleware(async (c: Context, next: Next) => {
+  try {
+    await next();
+  } catch (err) {
+    // Zod validation errors
+    const logger = c.var;
+    if (err instanceof ZodError) {
+      logger.error(err, "Validation failed");
+      c.json(
+        {
+          error: "Validation failed",
+          message: err.message,
+        },
+        400
+      );
+      return;
+    }
 
-  // Zod validation errors
-  if (err instanceof ZodError) {
-    res.status(400).json({
-      error: "Validation failed",
-      message: err.message,
+    // Generic error fallback
+    c.json({
+      error: "Internal server error",
     });
-    return;
   }
-
-  // Generic error fallback
-  res.status(500).json({
-    error: "Internal server error",
-  });
-}
+});

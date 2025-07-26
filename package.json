@@ -1,5 +1,5 @@
 {
-  "name": "athena-ai",
+  "name": "@athena-ai/root",
   "private": true,
   "scripts": {
     "install:root": "pnpm install --ignore-workspace --reporter=default",

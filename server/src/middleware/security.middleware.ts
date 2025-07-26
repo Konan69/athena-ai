@@ -1,16 +1,16 @@
-import { Request, Response, NextFunction } from "express";
 import path from "path";
+import { Context } from "hono";
+import { Next } from "hono/types";
 
 /**
  * Middleware to prevent path traversal attacks in file operations.
  */
-export function pathTraversalProtection(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+export async function pathTraversalProtection(
+  c: Context,
+  next: Next
+): Promise<void | Response> {
   // Check common path traversal patterns in request parameters and body
-  const checkPathTraversal = (value: any): boolean => {
+  const checkPathTraversal = (value: string): boolean => {
     if (typeof value !== "string") return false;
 
     const dangerousPatterns = [
@@ -25,7 +25,7 @@ export function pathTraversalProtection(
   };
 
   // Check all string values in request
-  const checkObject = (obj: any): boolean => {
+  const checkObject = (obj: unknown): boolean => {
     if (typeof obj === "string") {
       return checkPathTraversal(obj);
     }
@@ -43,18 +43,17 @@ export function pathTraversalProtection(
 
   // Check params, query, and body
   if (
-    checkObject(req.params) ||
-    checkObject(req.query) ||
-    checkObject(req.body)
+    checkObject(c.req.param()) ||
+    checkObject(c.req.query()) ||
+    checkObject(c.req.raw.body)
   ) {
-    res.status(400).json({
+    return c.json({
       error: "Invalid path detected",
       message: "Path traversal attempts are not allowed",
     });
-    return;
   }
 
-  next();
+  return next();
 }
 
 /**
@@ -86,15 +85,19 @@ export function sanitizeFilePath(
  * Middleware to sanitize and validate file upload paths.
  */
 export function fileUploadSecurity(allowedDirectory: string) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    if (req.body && req.body.fileName) {
+  return (c: Context, next: Next): void => {
+    if (
+      c.req.raw.body &&
+      typeof c.req.raw.body === "object" &&
+      "fileName" in c.req.raw.body
+    ) {
       try {
-        req.body.fileName = sanitizeFilePath(
-          req.body.fileName,
+        c.req.raw.body.fileName = sanitizeFilePath(
+          c.req.raw.body.fileName as string,
           allowedDirectory
         );
       } catch (error) {
-        res.status(400).json({
+        c.json({
           error: "Invalid file path",
           message:
             error instanceof Error

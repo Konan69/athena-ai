@@ -1,19 +1,6 @@
-import {
-  Outlet,
-  HeadContent,
-  Scripts,
-  createRootRouteWithContext,
-} from "@tanstack/react-router";
+import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-
-import type { QueryClient } from "@tanstack/react-query";
-import type { AuthContext } from "@/lib/auth-client";
-
-interface MyRouterContext {
-  queryClient: QueryClient;
-  auth: AuthContext;
-  // trpc: TRPCOptionsProxy<TRPCRouter>;
-}
+import type { MyRouterContext } from "@/main";
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
