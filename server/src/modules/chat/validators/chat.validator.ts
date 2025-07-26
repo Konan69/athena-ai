@@ -7,8 +7,8 @@ export const chatMessageSchema = z.object({
 
 export const chatRequestSchema = z.object({
   message: chatMessageSchema.nullable(), // Allow null for initial loads or errors
-  threadId: z.string().min(1, "Thread ID is required"),
-  resourceId: z.string().min(1, "Resource ID is required").default("chat"),
+  // threadId: z.string().min(1, "Thread ID is required"),
+  // resourceId: z.string().min(1, "Resource ID is required").default("chat"),
 });
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;

@@ -29,9 +29,10 @@ export const mastra = new Mastra({
     researchAgent,
     summarizerAgent,
   },
-  storage: new PostgresStore({
-    connectionString: env.DATABASE_URL,
-  }),
+  // storage: new PostgresStore({
+
+  //   connectionString: env.DATABASE_URL,
+  // }),
 
   logger: new PinoLogger({
     name: "Mastra",

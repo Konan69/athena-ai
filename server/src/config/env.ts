@@ -3,7 +3,7 @@ import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 import { config } from "dotenv";
 
-config();
+config({ quiet: true });
 
 export const env = createEnv({
   server: {

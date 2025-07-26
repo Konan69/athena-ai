@@ -10,7 +10,7 @@ const options: DebugLogOptions = {
   colorEnabled: true,
   normalLogFormat: "[{time}] {levelLabel} - {msg} - {module}",
   httpLogFormat:
-    "[{time}] {req.method} {req.url} {res.status} - {msg} - {module} ({responseTime}ms)",
+    "{time} {req.method} {req.url} {res.status} - {msg} - {module} ({responseTime}ms)",
 };
 
 export const logger = pinoLogger({

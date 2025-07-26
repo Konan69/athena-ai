@@ -7,7 +7,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently -k -n WEB,MASTRA \" pnpm ts-node src/server.ts\" \"MASTRA_PORT=4000 mastra dev\"",
+    "dev": "concurrently -k -n API,MASTRA \" pnpm nodemon\" \"MASTRA_PORT=4000 mastra dev\"",
     "generate": "prisma generate",
     "mastra:build": "mastra build",
     "build": "prisma generate && pnpm tsc && pnpm mastra:build",
@@ -42,18 +42,18 @@
     "exa-js": "^1.0.11",
     "hono": "^4.8.8",
     "hono-pino": "^0.10.1",
-    "nodemon": "^3.1.10",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0",
     "superjson": "^2.2.2",
-    "ts-node": "^10.9.2",
     "zod": "^3.23.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.0.6",
     "concurrently": "^9.2.0",
     "mastra": "^0.10.15",
+    "nodemon": "^3.1.10",
     "prisma": "^6.11.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }
 }

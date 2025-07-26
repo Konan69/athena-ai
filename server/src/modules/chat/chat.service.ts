@@ -3,7 +3,7 @@ import { ChatRequest } from "./validators";
 
 export class ChatService {
   async processChat(request: ChatRequest) {
-    const { message, threadId, resourceId } = request;
+    const { message } = request;
 
     // Handle cases where message might be null (e.g., initial load or error)
     if (!message || !message.content) {
@@ -18,10 +18,10 @@ export class ChatService {
 
     // Process with memory using the single message content
     const stream = await agent.stream(message.content, {
-      memory: {
-        thread: threadId,
-        resource: resourceId,
-      },
+      // memory: {
+      // thread: threadId,
+      // resource: resourceId,
+      // },
       onStepFinish: ({ text, toolCalls, toolResults }) => {
         console.log("Step completed:", { text, toolCalls, toolResults });
       },

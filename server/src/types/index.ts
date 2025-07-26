@@ -1,4 +1,12 @@
-import { appRouter } from "../config/trpc";
+import { appRouter } from "../trpc";
+import { auth } from "../modules/auth";
+
+export interface APP {
+  Variables: {
+    user: typeof auth.$Infer.Session.user | null;
+    session: typeof auth.$Infer.Session.session | null;
+  };
+}
 
 export interface BaseRequest {
   id?: string;
