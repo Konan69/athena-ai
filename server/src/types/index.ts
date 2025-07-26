@@ -1,5 +1,5 @@
-import { appRouter } from "../trpc";
-import { auth } from "../modules/auth";
+import type { appRouter } from "../trpc";
+import type { auth } from "../modules/auth";
 
 export interface APP {
   Variables: {
