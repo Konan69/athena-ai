@@ -54,7 +54,7 @@ Athena AI is a production-grade platform that solves the complexity of orchestra
 - **Bun** runtime with **Express** server
 - **Mastra** for AI agent orchestration
 - **Effect-TS** for structured concurrency and error handling
-- **PostgreSQL** for persistence with **Prisma**
+- **PostgreSQL** for persistence with **Drizzle**
 - **Zod** for validation at every boundary
 
 **AI & Tools:**

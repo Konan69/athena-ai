@@ -7,7 +7,7 @@ dist
 *.db
 *.db-*
 
-/src/generated/prisma
+.drizzle
 
 
 node_modules

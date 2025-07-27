@@ -8,9 +8,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently -k -n API,MASTRA \" pnpm nodemon\" \"MASTRA_PORT=4000 mastra dev\"",
-    "generate": "prisma generate",
     "mastra:build": "mastra build",
-    "build": "prisma generate && pnpm tsc && pnpm mastra:build",
+    "build": "pnpm tsc && pnpm mastra:build",
     "start": "concurrently -k -n API,MASTRA \"node dist/server.js\" \"MASTRA_PORT=4000 mastra start\""
   },
   "packageManager": "pnpm@9.0.0",
@@ -30,14 +29,15 @@
     "@mastra/memory": "^0.11.5",
     "@mastra/pg": "^0.12.5",
     "@mastra/rag": "^1.0.4",
+    "@neondatabase/serverless": "^1.0.1",
     "@opentelemetry/api": "^1.9.0",
-    "@prisma/client": "^6.11.1",
     "@t3-oss/env-core": "^0.13.8",
     "@trpc/client": "^11.4.3",
     "@trpc/server": "^11.4.3",
     "better-auth": "^1.2.12",
     "concurrently": "^9.2.0",
     "dotenv": "^17.2.0",
+    "drizzle-orm": "^0.44.3",
     "effect": "^3.16.12",
     "exa-js": "^1.0.11",
     "hono": "^4.8.8",
@@ -50,9 +50,10 @@
   "devDependencies": {
     "@biomejs/biome": "2.0.6",
     "concurrently": "^9.2.0",
+    "drizzle-kit": "^0.31.4",
+    "drizzle-seed": "^0.3.1",
     "mastra": "^0.10.15",
     "nodemon": "^3.1.10",
-    "prisma": "^6.11.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }

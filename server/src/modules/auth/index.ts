@@ -1,17 +1,17 @@
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { env } from "../../config/env";
-import { PrismaClient } from "../../generated/prisma";
 
-const prisma = new PrismaClient();
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { env } from "../../config/env";
+import db from "../../db";
+
 export const auth = betterAuth({
-  database: prismaAdapter(prisma, {
-    provider: "postgresql",
+  database: drizzleAdapter(db, {
+    provider: "pg",
   }),
   trustedOrigins: ["http://localhost:3000", env.CLIENT_URL],
   secret: env.BETTER_AUTH_SECRET,
   // secondaryStorage: {
-  //   // Your implementation here
+  //   // TODO: add redis adapter
   // },
   socialProviders: {
     google: {
