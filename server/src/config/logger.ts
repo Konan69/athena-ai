@@ -1,39 +1,46 @@
 import pino from "pino";
 import { pinoLogger } from "hono-pino";
-import type { DebugLogOptions } from "hono-pino/debug-log";
+
 import pretty from "pino-pretty";
 import { env } from "./env";
+import type { HttpLoggerOptions } from "hono-pino/";
 
 const isDevelopment = env.NODE_ENV === "development";
-
-const options: DebugLogOptions = {
-  colorEnabled: true,
-  normalLogFormat: "[{time}] {levelLabel} - {msg} - {module}",
-  httpLogFormat:
-    "{time} {req.method} {req.url} {res.status} - {msg} - {module} ({responseTime}ms)",
-};
 
 export const logger = pinoLogger({
   pino: pino(
     {
       level: env.NODE_ENV === "development" ? "debug" : "info",
-      transport: isDevelopment
-        ? {
-            target: "pino-pretty",
-            options,
-          }
-        : undefined,
       formatters: {
         level: (label) => {
           return { level: label.toUpperCase() };
         },
       },
       timestamp: pino.stdTimeFunctions.isoTime,
-      base: {
-        pid: false,
-        hostname: false,
-      },
     },
-    isDevelopment ? pretty() : undefined
+    isDevelopment
+      ? pretty({
+          colorize: true,
+          singleLine: true,
+
+          ignore: "pid,hostname,url,method,host",
+          translateTime: "SYS:standard",
+        })
+      : undefined
   ),
+  http: {
+    reqId: false,
+    onReqBindings: (c) => ({
+      url: c.req.raw.url,
+      method: c.req.raw.method,
+      host: c.req.raw.headers.get("host"),
+    }),
+    onResBindings: (c) => ({
+      res: {
+        status: c.res.status,
+      },
+    }),
+    responseTime: true,
+    onResMessage: (c) => `${c.req.method} ${c.req.path} - ${c.res.status}`,
+  },
 });

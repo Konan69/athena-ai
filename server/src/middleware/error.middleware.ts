@@ -21,6 +21,7 @@ export const errorHandler = createMiddleware(async (c: Context, next: Next) => {
       return;
     }
 
+    logger.error(err, "Internal server error");
     // Generic error fallback
     c.json({
       error: "Internal server error",

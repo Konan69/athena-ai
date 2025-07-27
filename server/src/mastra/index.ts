@@ -4,9 +4,10 @@ import { LibSQLStore } from "@mastra/libsql";
 import { Mastra } from "@mastra/core/mastra";
 import { PgVector, PostgresStore } from "@mastra/pg";
 import { researchAgent } from "./agents/research-agent";
-import { summarizerAgent } from "./agents/summarizer-agent";
+import { athenaAI } from "./agents/athena";
 import { researchWorkflow } from "./workflows/research-workflow";
 import { env } from "../config/env";
+import { memory } from "../config/memory";
 
 export const mcp = new MCPClient({
   servers: {
@@ -26,14 +27,12 @@ export const mastra = new Mastra({
     researchWorkflow,
   },
   agents: {
+    athenaAI,
     researchAgent,
-    summarizerAgent,
   },
   // storage: new PostgresStore({
-
   //   connectionString: env.DATABASE_URL,
   // }),
-
   logger: new PinoLogger({
     name: "Mastra",
     level: "info",

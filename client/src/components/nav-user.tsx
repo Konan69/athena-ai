@@ -28,14 +28,17 @@ import {
 import { signOut } from "@/lib/auth-client";
 import { useSessionStore } from "@/store/session.store";
 import { useUserStore } from "@/store/user.store";
+import { useNavigate } from "@tanstack/react-router";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
   const { clearSession } = useSessionStore();
   const { user } = useUserStore();
+  const navigate = useNavigate();
   const handleLogout = async () => {
     await signOut();
     clearSession();
+    navigate({ to: "/login" });
   };
 
   return (

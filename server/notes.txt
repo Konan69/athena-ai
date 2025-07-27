@@ -1,3 +1,6 @@
 mastra .parallel workflow step
 
 inngest background jobs
+
+resourceId is user ID
+thread is the messages of the user (resource)

@@ -1,49 +1,15 @@
-// src/config/trpc.ts
-import { initTRPC, TRPCError } from "@trpc/server";
-import superjson from "superjson";
-import { auth } from "../modules/auth";
-import { logger } from "../config/logger";
-import { APP } from "../types";
-import { Context } from "hono";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "./base";
+import { chatService } from "../modules/chat/chat.service";
+import { chatRouter } from "../modules/chat/routes/procedures";
 
-export type TRPCContext = {
-  user: typeof auth.$Infer.Session.user | null;
-  session: typeof auth.$Infer.Session.session | null;
-  req: Request;
-  logger: typeof logger;
-};
+// NOTE: DO NOT = USE IMPORT ALIAS IN TRPC ROUTER FILES
+// E.G. import { anything } from "@src/server/trpc/index";
+// THIS WILL CAUSE TYPE ERRORS IN THE CLIENT.
+// USE RELATIVE IMPORT INSTEAD
+// E.G. import { something } from "../modules/chat/routes/procedures";
 
-export const createTRPCContext = (opts: any, c: Context<APP>) => {
-  return {
-    user: c.var.user,
-    session: c.var.session,
-    req: c.req,
-    logger,
-  };
-};
-
-const t = initTRPC.context<TRPCContext>().create({
-  transformer: superjson,
-});
-const publicProcedure = t.procedure;
-
-export const protectedProcedure = publicProcedure.use(({ ctx, next }) => {
-  if (!ctx.session) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "You must be logged in to access this resource",
-    });
-  }
-
-  return next({
-    ctx: {
-      ...ctx,
-      user: ctx.user,
-    },
-  });
-});
-
-export const appRouter = t.router({
+export const appRouter = createTRPCRouter({
+  chats: chatRouter,
   hello: publicProcedure.query(({ ctx }) => {
     // TODO: MAKE GENERIC LOGGER, current impl is hono native
     // ctx.logger.info("Hello, world!");

@@ -8,7 +8,3 @@ export interface ChatRequest {
   threadId: string;
   resourceId: string;
 }
-
-export interface StreamingChatResponse {
-  stream: AsyncIterable<string>;
-}

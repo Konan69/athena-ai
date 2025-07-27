@@ -1,4 +1,3 @@
-import type { appRouter } from "../trpc";
 import type { auth } from "../modules/auth";
 
 export interface APP {
@@ -30,4 +29,3 @@ export interface SuccessResponse<T> extends BaseResponse {
 }
 
 export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
-export type { appRouter };

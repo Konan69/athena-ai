@@ -1,5 +1,9 @@
+import { desc, eq } from "drizzle-orm";
+import db from "../../db";
+import { mastra as mastraSchema } from "../../db/schemas";
 import { mastra } from "../../mastra/index";
 import { ChatRequest } from "./validators";
+import { memory } from "../../config/memory";
 
 export class ChatService {
   async processChat(request: ChatRequest) {
@@ -42,6 +46,32 @@ export class ChatService {
     });
 
     return stream;
+  }
+
+  async createChat(userId: string) {
+    const thread = await memory.createThread({
+      resourceId: userId,
+    });
+
+    return thread.id;
+  }
+
+  async getChats(userId: string) {
+    const chats = await memory.getThreadsByResourceId({
+      resourceId: userId,
+    });
+
+    return chats.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getChatsDrizzle(userId: string) {
+    const chats = await db
+      .select()
+      .from(mastraSchema.mastraThreads)
+      .where(eq(mastraSchema.mastraThreads.resourceId, userId))
+      .orderBy(desc(mastraSchema.mastraThreads.createdAt));
+
+    return chats;
   }
 }
 

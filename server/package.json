@@ -2,8 +2,9 @@
   "name": "@athena-ai/server",
   "version": "1.0.0",
   "main": "server.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    "./types": "./src/types/index.ts"
+    "./trpc": "./src/trpc/index.ts"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

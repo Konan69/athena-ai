@@ -1,8 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import superjson from "superjson";
-import { trpc } from "@/config/trpc";
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     dehydrate: { serializeData: superjson.serialize },
     hydrate: { deserializeData: superjson.deserialize },
@@ -12,7 +11,6 @@ const queryClient = new QueryClient({
 export function getContext() {
   return {
     queryClient,
-    trpc,
   };
 }
 

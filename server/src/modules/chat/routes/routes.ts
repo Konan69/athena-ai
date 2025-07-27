@@ -1,9 +1,8 @@
 import { zValidator } from "@hono/zod-validator";
-import { chatRequestSchema } from "./validators";
-import { chatService } from "./chat.service";
-import { createApp } from "../../lib/factory";
+import { chatRequestSchema } from "../validators";
+import { chatService } from "../chat.service";
+import { createApp } from "../../../lib/factory";
 import { stream } from "hono/streaming";
-import { logger } from "../../config/logger";
 
 export const validateChatRequest = zValidator("json", chatRequestSchema);
 
