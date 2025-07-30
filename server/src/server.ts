@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { requestId } from "hono/request-id";
 import { cors } from "hono/cors";
 import { trpcServer } from "@hono/trpc-server";
 import { logger } from "./config/logger";
@@ -15,6 +16,7 @@ import { authMiddleware } from "./middleware/auth.middleware";
 const PORT = env.PORT;
 
 export const app = createApp()
+  .use(requestId())
   .use(logger)
   .use(
     "/api/*",
