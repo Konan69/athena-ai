@@ -1,4 +1,3 @@
-import { serve } from "@hono/node-server";
 import { requestId } from "hono/request-id";
 import { cors } from "hono/cors";
 import { trpcServer } from "@hono/trpc-server";
@@ -58,9 +57,7 @@ app
   )
   .use(errorHandler);
 
-console.log(`Server is running on port http://localhost:${PORT}`);
-
-serve({
+export default {
   fetch: app.fetch,
   port: parseInt(PORT),
-});
+};

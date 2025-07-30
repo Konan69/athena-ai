@@ -22,7 +22,6 @@ export const logger = pinoLogger({
       ? pretty({
           colorize: true,
           singleLine: true,
-
           ignore: "pid,hostname,url,method,host",
           translateTime: "SYS:standard",
         })
@@ -41,6 +40,6 @@ export const logger = pinoLogger({
       },
     }),
     responseTime: true,
-    onResMessage: (c) => `${c.req.method} ${c.req.path} - ${c.res.status}`,
+    onResMessage: (c) => `${c.req.method} ${c.req.path} `,
   },
 });

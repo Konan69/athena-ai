@@ -8,10 +8,11 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently -k -n API,MASTRA \" pnpm nodemon\" \"MASTRA_PORT=4000 mastra dev\"",
+    "dev": "concurrently -k -n API,MASTRA \"pnpm nodemon\" \"MASTRA_PORT=4000 mastra dev\"",
     "mastra:build": "mastra build",
     "build": "pnpm tsc && pnpm mastra:build",
-    "start": "concurrently -k -n API,MASTRA \"node dist/server.js\" \"MASTRA_PORT=4000 mastra start\""
+    "start": "concurrently -k -n API,MASTRA \"bun dist/server.js\" \"MASTRA_PORT=4000 bun run --env-file=.env mastra start\"",
+    "start:prod": "concurrently -k -n API,MASTRA \"bun dist/server.js\" \"MASTRA_PORT=4000 bun run mastra start\""
   },
   "packageManager": "pnpm@9.0.0",
   "keywords": [],
@@ -50,7 +51,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.0.6",
-    "concurrently": "^9.2.0",
+    "@types/bun": "^1.2.19",
     "drizzle-kit": "^0.31.4",
     "drizzle-seed": "^0.3.1",
     "mastra": "^0.10.15",

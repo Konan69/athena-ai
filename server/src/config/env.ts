@@ -1,5 +1,5 @@
 import { createEnv } from "@t3-oss/env-core";
-// import { env as bunEnv } from "bun";
+import { env as bunEnv } from "bun";
 import { z } from "zod";
 import { config } from "dotenv";
 
@@ -22,6 +22,6 @@ export const env = createEnv({
       .enum(["exa", "brave"])
       .describe("The web search provider to use"),
   },
-  runtimeEnv: process.env,
+  runtimeEnv: bunEnv,
   emptyStringAsUndefined: true,
 });
