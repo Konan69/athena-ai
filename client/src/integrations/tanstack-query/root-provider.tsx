@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import superjson from "superjson";
+// import { trpcClient } from "@/config/trpc";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -11,6 +12,7 @@ export const queryClient = new QueryClient({
 export function getContext() {
   return {
     queryClient,
+    // trpcClient,
   };
 }
 

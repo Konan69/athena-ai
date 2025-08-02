@@ -88,7 +88,7 @@ const data = {
 export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate();
   const trpc = useTRPC();
-  const chats = useQuery(trpc.chats.getChats.queryOptions());
+  const chats = useQuery(trpc.chat.getChats.queryOptions());
 
   // const data = chats.data;
   const handleNewChat = () => {

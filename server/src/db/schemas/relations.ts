@@ -39,11 +39,3 @@ export const libraryItemRelations = relations(libraryItem, ({ one }) => ({
     references: [library.id],
   }),
 }));
-
-export default {
-  userRelations,
-  accountRelations,
-  sessionRelations,
-  libraryRelations,
-  libraryItemRelations,
-};

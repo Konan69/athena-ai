@@ -1,6 +1,6 @@
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "./base";
-import { chatService } from "../modules/chat/chat.service";
-import { chatRouter } from "../modules/chat/routes/procedures";
+import { chatProcedures } from "../modules/chat/routes/procedures";
+import { libraryProcedures } from "../modules/library/routes/procedures";
 
 // NOTE: DO NOT = USE IMPORT ALIAS IN TRPC ROUTER FILES
 // E.G. import { anything } from "@src/server/trpc/index";
@@ -9,7 +9,8 @@ import { chatRouter } from "../modules/chat/routes/procedures";
 // E.G. import { something } from "../modules/chat/routes/procedures";
 
 export const appRouter = createTRPCRouter({
-  chats: chatRouter,
+  chat: chatProcedures,
+  library: libraryProcedures,
   hello: publicProcedure.query(({ ctx }) => {
     // TODO: MAKE GENERIC LOGGER, current impl is hono native
     // ctx.logger.info("Hello, world!");

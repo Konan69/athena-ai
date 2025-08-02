@@ -15,7 +15,6 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
-import { Route as AuthenticatedLibraryIndexRouteImport } from './routes/_authenticated/library/index'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -45,25 +44,18 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthenticatedLibraryIndexRoute =
-  AuthenticatedLibraryIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedLibraryRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRoute
   '/chat': typeof AuthenticatedChatRoute
-  '/library': typeof AuthenticatedLibraryRouteWithChildren
+  '/library': typeof AuthenticatedLibraryRoute
   '/': typeof AuthenticatedIndexRoute
-  '/library/': typeof AuthenticatedLibraryIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/chat': typeof AuthenticatedChatRoute
+  '/library': typeof AuthenticatedLibraryRoute
   '/': typeof AuthenticatedIndexRoute
-  '/library': typeof AuthenticatedLibraryIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,15 +63,14 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_auth/login': typeof AuthLoginRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
-  '/_authenticated/library': typeof AuthenticatedLibraryRouteWithChildren
+  '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/library/': typeof AuthenticatedLibraryIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/login' | '/chat' | '/library' | '/' | '/library/'
+  fullPaths: '/login' | '/chat' | '/library' | '/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/chat' | '/' | '/library'
+  to: '/login' | '/chat' | '/library' | '/'
   id:
     | '__root__'
     | '/_auth'
@@ -88,7 +79,6 @@ export interface FileRouteTypes {
     | '/_authenticated/chat'
     | '/_authenticated/library'
     | '/_authenticated/'
-    | '/_authenticated/library/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -140,13 +130,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_authenticated/library/': {
-      id: '/_authenticated/library/'
-      path: '/'
-      fullPath: '/library/'
-      preLoaderRoute: typeof AuthenticatedLibraryIndexRouteImport
-      parentRoute: typeof AuthenticatedLibraryRoute
-    }
   }
 }
 
@@ -160,26 +143,15 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
-interface AuthenticatedLibraryRouteChildren {
-  AuthenticatedLibraryIndexRoute: typeof AuthenticatedLibraryIndexRoute
-}
-
-const AuthenticatedLibraryRouteChildren: AuthenticatedLibraryRouteChildren = {
-  AuthenticatedLibraryIndexRoute: AuthenticatedLibraryIndexRoute,
-}
-
-const AuthenticatedLibraryRouteWithChildren =
-  AuthenticatedLibraryRoute._addFileChildren(AuthenticatedLibraryRouteChildren)
-
 interface AuthenticatedRouteChildren {
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
-  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRouteWithChildren
+  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedChatRoute: AuthenticatedChatRoute,
-  AuthenticatedLibraryRoute: AuthenticatedLibraryRouteWithChildren,
+  AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 

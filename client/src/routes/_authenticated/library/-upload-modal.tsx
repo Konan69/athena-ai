@@ -91,6 +91,9 @@ export function UploadModal({
       setTags([]);
       setFile(null);
       setCurrentTag("");
+
+      // Close modal after successful submit
+      onOpenChange(false);
     }
   };
 
@@ -104,13 +107,30 @@ export function UploadModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent
+        className="sm:max-w-[500px]"
+        onPointerDownOutside={() => onOpenChange(false)}
+        onEscapeKeyDown={() => onOpenChange(false)}
+      >
         <DialogHeader>
-          <DialogTitle>Upload Knowledge Object</DialogTitle>
-          <DialogDescription>
-            Add a new document to your knowledge base. PDF, DOCX, TXT, and MD
-            files up to 10MB are supported.
-          </DialogDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <DialogTitle>Upload Knowledge Object</DialogTitle>
+              <DialogDescription>
+                Add a new document to your knowledge base. PDF, DOCX, TXT, and
+                MD files up to 10MB are supported.
+              </DialogDescription>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Close"
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4">

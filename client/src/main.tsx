@@ -1,5 +1,6 @@
 import { StrictMode, useState } from "react";
 import * as ReactDOM from "react-dom/client";
+import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -23,8 +24,6 @@ const router = createRouter({
   routeTree,
   context: undefined!,
   defaultPreload: "intent",
-  scrollRestoration: true,
-  defaultStructuralSharing: true,
   defaultPreloadStaleTime: 0,
 });
 

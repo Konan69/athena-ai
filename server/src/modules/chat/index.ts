@@ -1,7 +1,9 @@
-import chatRouter from "./routes/routes";
+import { chatProcedures } from "./routes/procedures";
+import chatRouter from "./routes";
 
 export const chatModule = {
   path: "/api/chat",
-  router: chatRouter,
+  procedures: chatProcedures,
+  routes: chatRouter,
   name: "chat",
 };

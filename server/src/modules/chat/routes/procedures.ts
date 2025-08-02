@@ -10,7 +10,7 @@ import { chatService } from "../chat.service";
 
 import { z } from "zod";
 
-export const chatRouter = {
+export const chatProcedures = createTRPCRouter({
   getChats: protectedProcedure.query(async ({ ctx }) => {
     const chats = await chatService.getChats(ctx.user.id);
     return chats;
@@ -27,4 +27,4 @@ export const chatRouter = {
   sayHello: publicProcedure.query(async ({ ctx }) => {
     return "Hello, world!";
   }),
-};
+});

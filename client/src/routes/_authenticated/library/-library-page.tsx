@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { UploadModal } from "./-upload-modal";
 import { FileText, Upload, Search, Clock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTRPC } from "@/config/trpc";
 
 interface KnowledgeObject {
   id: string;
@@ -27,6 +28,8 @@ interface KnowledgeObject {
 }
 
 export function LibraryPage() {
+  const trpc = useTRPC();
+  const data = trpc.library.getLibraryItems.queryOptions();
   const [objects, setObjects] = useState<KnowledgeObject[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<

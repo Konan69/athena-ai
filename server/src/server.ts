@@ -34,11 +34,14 @@ export const app = createApp()
     return auth.handler(c.req.raw);
   })
   .use(authMiddleware);
-//register authenticated routes
+// register authenticated routes
 const routes = modules.map((m) => {
-  return app.route(m.path, m.router);
+  if (m.routes) {
+    return app.route(m.path, m.routes);
+  }
 });
 routes;
+
 app
   .use(
     "/trpc/*",
