@@ -3,4 +3,4 @@ export {
   chatRequestSchema,
   type ChatMessage,
   type ChatRequest,
-} from "./chat.validator";
+} from "./chatValidator";

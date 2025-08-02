@@ -5,7 +5,7 @@ import {
   publicProcedure,
   t,
 } from "../../../trpc/base";
-import * as chatValidator from "../validators/chat.validator";
+import * as chatValidator from "../validators/chatValidator";
 import { chatService } from "../chat.service";
 
 import { z } from "zod";

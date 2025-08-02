@@ -1,13 +1,13 @@
 import { desc, eq } from "drizzle-orm";
 import db from "../../db";
 import { mastra as mastraSchema } from "../../db/schemas";
-import { mastra } from "../../mastra/index";
+import { mastra } from "../../mastra";
 import { ChatRequest } from "./validators";
 import { memory } from "../../config/memory";
 
 export class ChatService {
   async processChat(request: ChatRequest) {
-    const { message } = request;
+    const { message, threadId, resourceId } = request;
 
     // Handle cases where message might be null (e.g., initial load or error)
     if (!message || !message.content) {
@@ -15,17 +15,17 @@ export class ChatService {
     }
 
     // Get the agent from Mastra
-    const agent = mastra.getAgent("researchAgent");
+    const agent = mastra.getAgents().athenaAI;
     if (!agent) {
       throw new Error("Agent not found");
     }
 
     // Process with memory using the single message content
     const stream = await agent.stream(message.content, {
-      // memory: {
-      // thread: threadId,
-      // resource: resourceId,
-      // },
+      memory: {
+        thread: threadId,
+        resource: resourceId!,
+      },
       onStepFinish: ({ text, toolCalls, toolResults }) => {
         console.log("Step completed:", { text, toolCalls, toolResults });
       },

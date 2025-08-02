@@ -121,12 +121,8 @@ export const mastraEvals = pgTable("mastra_evals", {
   testInfo: jsonb("test_info"),
   globalRunId: text("global_run_id").notNull(),
   runId: text("run_id").notNull(),
-  createdAt: timestamp("created_at", { mode: "string" }).notNull(),
-
-  createdAtZ: timestamp("created_atZ", {
-    withTimezone: true,
-    mode: "string",
-  }).defaultNow(),
+  createdAt: timestamp({ mode: "string" }),
+  createdAtZ: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
 });
 
 export default {

@@ -18,10 +18,9 @@ export const app = createApp()
   .use(requestId())
   .use(logger)
   .use(
-    "/api/*",
     cors({
       origin: env.CLIENT_URL,
-      allowHeaders: ["Content-Type", "Authorization"],
+      allowHeaders: ["Content-Type", "Authorization", "x-trpc-source"],
       allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       maxAge: 600,
       credentials: true,
@@ -43,13 +42,6 @@ routes;
 app
   .use(
     "/trpc/*",
-    cors({
-      origin: env.CLIENT_URL,
-      allowHeaders: ["Content-Type", "Authorization"],
-      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      maxAge: 600,
-      credentials: true,
-    }),
     trpcServer({
       router: appRouter,
       createContext: createTRPCContext,

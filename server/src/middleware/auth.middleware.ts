@@ -1,5 +1,6 @@
 import { auth } from "../modules/auth";
 import { createMiddleware } from "hono/factory";
+import { HTTPException } from "hono/http-exception";
 
 export const authMiddleware = createMiddleware(async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -7,7 +8,9 @@ export const authMiddleware = createMiddleware(async (c, next) => {
   if (!session) {
     c.set("user", null);
     c.set("session", null);
-    return c.json({ error: "Unauthorized" }, 401);
+    throw new HTTPException(401, {
+      message: "Session has expired, please login again",
+    });
   }
 
   c.set("user", session.user);
