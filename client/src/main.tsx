@@ -13,18 +13,10 @@ import "./styles.css";
 import reportWebVitals from "./reportWebVitals.ts";
 import { AuthProvider, useAuth } from "./integrations/auth/root-provider.tsx";
 import { TRPCProvider } from "./config/trpc";
-import type { QueryClient } from "@tanstack/react-query";
-import type { AuthContext } from "./lib/auth-client.tsx";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@athena-ai/server/trpc";
 import { env } from "./config/env.ts";
 import superjson from "superjson";
-
-export interface MyRouterContext {
-  queryClient: QueryClient;
-  auth: AuthContext;
-  trpc: ReturnType<typeof createTRPCClient<AppRouter>>;
-}
 
 // Create a new router instance
 const router = createRouter({

@@ -1,4 +1,3 @@
-// shared.ts - FIXED
 import { PostgresStore } from "@mastra/pg";
 import { env } from "./env";
 
@@ -17,7 +16,7 @@ export const s3Client =
       })
     : null;
 
-// Helper function for your Bun code
+// Helper function Bun code
 export function getS3Client() {
   if (!s3Client) {
     throw new Error("S3Client only available in Bun runtime");

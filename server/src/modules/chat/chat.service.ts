@@ -26,6 +26,7 @@ export class ChatService {
         thread: threadId,
         resource: resourceId!,
       },
+
       onStepFinish: ({ text, toolCalls, toolResults }) => {
         console.log("Step completed:", { text, toolCalls, toolResults });
       },
