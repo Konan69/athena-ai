@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,12 +9,13 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { signIn } from "@/lib/auth-client";
+import { signIn, useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
-
+import { useUserStore } from "@/store/user.store";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useSessionStore } from "@/store/session.store";
+
 import { env } from "@/config/env";
 
 export const Route = createFileRoute("/_auth/login")({
@@ -60,21 +62,10 @@ export const Route = createFileRoute("/_auth/login")({
 });
 
 const signInWithGoogle = async () => {
-  const { data, error } = await signIn.social(
-    {
-      provider: "google",
-      callbackURL: env.VITE_CLIENT_URL,
-    },
-    {
-      onSuccess(context) {
-        console.log(context);
-      },
-      onError: (error) => {
-        console.error(error);
-      },
-    }
-  );
-  return { data, error };
+  await signIn.social({
+    provider: "google",
+    callbackURL: env.VITE_CLIENT_URL,
+  });
 };
 
 export default function SignIn() {
@@ -82,12 +73,8 @@ export default function SignIn() {
 
   const { mutate: signInWithGoogleMutation, isPending } = useMutation({
     mutationFn: signInWithGoogle,
-    onSuccess: () => {
-      // Auth state will be synced by the AuthProvider automatically
-      router.navigate({ to: "/" });
-    },
     onError: (error) => {
-      console.error(error);
+      console.error("Sign in error:", error);
     },
   });
 

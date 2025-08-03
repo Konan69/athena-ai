@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
 import { SidebarApp } from "@/components/sidebar-app";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useSessionStore } from "@/store/session.store";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -27,10 +27,10 @@ export const Route = createFileRoute("/_authenticated")({
     return (
       <SidebarProvider>
         <div className="flex h-screen w-full bg-background">
-          <SidebarApp />
-          <main className="flex-1 flex flex-col overflow-hidden">
+          <SidebarApp variant="inset" collapsible="offcanvas" />
+          <SidebarInset className="bg-transparent md:ml-0">
             <Outlet />
-          </main>
+          </SidebarInset>
         </div>
       </SidebarProvider>
     );

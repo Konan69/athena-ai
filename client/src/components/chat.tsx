@@ -61,7 +61,7 @@ export function Chat({ className, ...props }: ComponentPropsWithoutRef<"div">) {
               <h2 className="text-2xl font-bold mb-2 text-foreground">
                 Chat with AI Assistant
               </h2>
-              <p>Start a conversation by typing a message below.</p>
+              <p>Start a conversation by type a message below.</p>
             </div>
           ) : (
             messages.map((message) => {

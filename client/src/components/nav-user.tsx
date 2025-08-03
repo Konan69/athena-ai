@@ -23,8 +23,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/use-sidebar";
 import { signOut } from "@/lib/auth-client";
 import { useSessionStore } from "@/store/session.store";
 import { useUserStore } from "@/store/user.store";
@@ -32,8 +32,9 @@ import { useNavigate } from "@tanstack/react-router";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
-  const { clearSession } = useSessionStore();
-  const { user } = useUserStore();
+  const { clearSession, session } = useSessionStore();
+  const user = useUserStore((state) => state.user);
+
   const navigate = useNavigate();
   const handleLogout = async () => {
     await signOut();

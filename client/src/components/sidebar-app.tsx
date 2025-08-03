@@ -23,7 +23,6 @@ import { NavUser } from "@/components/nav-user";
 import { MessageCircle, SquarePen, BookOpen } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
-import { useUserStore } from "@/store/user.store";
 
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/config/trpc";

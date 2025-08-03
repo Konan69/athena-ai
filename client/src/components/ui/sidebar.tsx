@@ -8,6 +8,11 @@ import { PanelLeftIcon } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  SidebarContext,
+  useSidebar,
+  type SidebarContextProps,
+} from "./use-sidebar";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -31,27 +36,6 @@ const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
-
-type SidebarContextProps = {
-  state: "expanded" | "collapsed";
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  openMobile: boolean;
-  setOpenMobile: (open: boolean) => void;
-  isMobile: boolean;
-  toggleSidebar: () => void;
-};
-
-const SidebarContext = React.createContext<SidebarContextProps | null>(null);
-
-function useSidebar() {
-  const context = React.useContext(SidebarContext);
-  if (!context) {
-    throw new Error("useSidebar must be used within a SidebarProvider.");
-  }
-
-  return context;
-}
 
 function SidebarProvider({
   defaultOpen = true,
@@ -91,7 +75,7 @@ function SidebarProvider({
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
-  }, [isMobile, setOpen]);
+  }, [isMobile, setOpen, setOpenMobile]);
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -123,7 +107,7 @@ function SidebarProvider({
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, setOpen, isMobile, openMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
   );
 
   return (
@@ -214,11 +198,14 @@ function Sidebar({
       data-side={side}
       data-slot="sidebar"
     >
-      {/* This is what handles the sidebar gap on desktop */}
+      {/* This handles the sidebar gap on desktop. For inset, occupy stacking context behind content. */}
       <div
         data-slot="sidebar-gap"
         className={cn(
-          "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
+          // Fill the height, sit behind content (z-0), and ensure bg matches sidebar
+          "relative h-svh w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear z-0",
+          // Make the gap area explicitly use the sidebar background in inset mode
+          "group-data-[variant=inset]:bg-sidebar",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
@@ -237,6 +224,10 @@ function Sidebar({
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+          // Ensure no border shows on the sidebar edge for any variant.
+          "border-0 group-data-[side=left]:border-r-0 group-data-[side=right]:border-l-0",
+          // Remove any visual rail/edge when inset is used
+          "group-data-[variant=inset]:border-none group-data-[variant=inset]:shadow-none",
           className
         )}
         {...props}
@@ -244,7 +235,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm"
+          className="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm border-none"
         >
           {children}
         </div>
@@ -292,6 +283,8 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
       title="Toggle Sidebar"
       className={cn(
         "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
+        // Hide the rail and its edge line for inset variant to avoid visible seam.
+        "group-data-[variant=inset]:hidden group-data-[variant=inset]:after:hidden",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
         "hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
@@ -309,8 +302,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
     <main
       data-slot="sidebar-inset"
       className={cn(
-        "bg-background relative flex w-full flex-1 flex-col",
-        "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
+        "bg-background relative z-10 flex w-full flex-col",
         className
       )}
       {...props}
@@ -722,5 +714,6 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  useSidebar,
 };
+
+///
