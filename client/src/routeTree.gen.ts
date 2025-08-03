@@ -13,8 +13,8 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
-import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as AuthenticatedChatChar123ThreadIdChar125RouteImport } from './routes/_authenticated/chat/{-$threadId}'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -34,51 +34,52 @@ const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthenticatedChatChar123ThreadIdChar125Route =
+  AuthenticatedChatChar123ThreadIdChar125RouteImport.update({
+    id: '/chat/{-$threadId}',
+    path: '/chat/{-$threadId}',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRoute
-  '/chat': typeof AuthenticatedChatRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/': typeof AuthenticatedIndexRoute
+  '/chat/{-$threadId}': typeof AuthenticatedChatChar123ThreadIdChar125Route
 }
 export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
-  '/chat': typeof AuthenticatedChatRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/': typeof AuthenticatedIndexRoute
+  '/chat/{-$threadId}': typeof AuthenticatedChatChar123ThreadIdChar125Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_auth/login': typeof AuthLoginRoute
-  '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/chat/{-$threadId}': typeof AuthenticatedChatChar123ThreadIdChar125Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/login' | '/chat' | '/library' | '/'
+  fullPaths: '/login' | '/library' | '/' | '/chat/{-$threadId}'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/chat' | '/library' | '/'
+  to: '/login' | '/library' | '/' | '/chat/{-$threadId}'
   id:
     | '__root__'
     | '/_auth'
     | '/_authenticated'
     | '/_auth/login'
-    | '/_authenticated/chat'
     | '/_authenticated/library'
     | '/_authenticated/'
+    | '/_authenticated/chat/{-$threadId}'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,19 +117,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLibraryRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/chat': {
-      id: '/_authenticated/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof AuthenticatedChatRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_auth/login': {
       id: '/_auth/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/_authenticated/chat/{-$threadId}': {
+      id: '/_authenticated/chat/{-$threadId}'
+      path: '/chat/{-$threadId}'
+      fullPath: '/chat/{-$threadId}'
+      preLoaderRoute: typeof AuthenticatedChatChar123ThreadIdChar125RouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
@@ -144,15 +145,16 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedChatChar123ThreadIdChar125Route: typeof AuthenticatedChatChar123ThreadIdChar125Route
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedChatChar123ThreadIdChar125Route:
+    AuthenticatedChatChar123ThreadIdChar125Route,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

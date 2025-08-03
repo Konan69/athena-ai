@@ -134,4 +134,9 @@ code {
   body {
     @apply bg-background text-foreground;
   }
+  .bg-noise {
+    background-image: url(/noise.png);
+    background-size: 96px 96px;
+    background-repeat: repeat;
+  }
 }

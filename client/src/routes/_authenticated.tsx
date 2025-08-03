@@ -26,11 +26,22 @@ export const Route = createFileRoute("/_authenticated")({
   component: () => {
     return (
       <SidebarProvider>
-        <div className="flex h-screen w-full bg-background">
+        {/* Global inset background behind everything */}
+        <div className="absolute inset-0 z-0 dark:bg-sidebar">
+          <div className="absolute inset-0 " />
+        </div>
+
+        {/* Shell above background */}
+        <div className="relative z-10 flex min-h-svh w-full ">
           <SidebarApp variant="inset" collapsible="offcanvas" />
-          <SidebarInset className="bg-transparent md:ml-0">
-            <Outlet />
-          </SidebarInset>
+          {/* Content wrapper */}
+          <main className="relative flex-1 overflow-hidden ">
+            <div className=" sm:translate-y-3 min-h-[100svh] border-l sm:border sm:border-chat-border sm:rounded-tl-xl backdrop-blur-md pb-[140px] overflow-hidden transition-all">
+              <SidebarInset className="bg-transparent">
+                <Outlet />
+              </SidebarInset>
+            </div>
+          </main>
         </div>
       </SidebarProvider>
     );

@@ -24,9 +24,6 @@ export function useAuth() {
     setIsAuthenticated,
     setIsLoading,
   ]);
-
-  console.log("isAuthenticated", isAuthenticated);
-
   return {
     isAuthenticated,
     user: data?.user ?? null,

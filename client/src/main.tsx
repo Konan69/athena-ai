@@ -1,24 +1,16 @@
-import { StrictMode, useState } from "react";
+import { StrictMode } from "react";
+import { Toaster } from "sonner";
 import * as ReactDOM from "react-dom/client";
-import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   TanStackQueryProvider,
   getContext,
-  queryClient,
 } from "./integrations/tanstack-query/root-provider.tsx";
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 import reportWebVitals from "./reportWebVitals.ts";
 import { AuthProvider, useAuth } from "./integrations/auth/root-provider.tsx";
-import { TRPCProvider } from "./config/trpc";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import type { AppRouter } from "@athena-ai/server/trpc";
-import { env } from "./config/env.ts";
-import superjson from "superjson";
-
 // Create a new router instance
 const router = createRouter({
   routeTree,
@@ -29,32 +21,13 @@ const router = createRouter({
 
 function InnerApp() {
   useAuth();
-  const [trpcClient] = useState(() =>
-    createTRPCClient<AppRouter>({
-      links: [
-        httpBatchLink({
-          url: env.VITE_API_BASE_URL + "/trpc",
-          transformer: superjson,
-          fetch(url, options) {
-            return fetch(url, {
-              ...options,
-              credentials: "include",
-            });
-          },
-        }),
-      ],
-    })
-  );
   return (
-    <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-      <RouterProvider
-        router={router}
-        context={{
-          ...getContext(),
-          trpc: trpcClient,
-        }}
-      />
-    </TRPCProvider>
+    <RouterProvider
+      router={router}
+      context={{
+        ...getContext(),
+      }}
+    />
   );
 }
 
@@ -73,6 +46,7 @@ if (rootElement && !rootElement.innerHTML) {
     <StrictMode>
       <TanStackQueryProvider>
         <AuthProvider>
+          <Toaster richColors />
           <InnerApp />
         </AuthProvider>
         <ReactQueryDevtools position="left" />

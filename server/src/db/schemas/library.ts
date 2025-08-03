@@ -1,6 +1,13 @@
 import { pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { user } from "./user";
 import { nanoid } from "nanoid";
+import { pgEnum } from "drizzle-orm/pg-core";
+
+export const libraryItemStatus = pgEnum("status", [
+  "processing",
+  "ready",
+  "failed",
+]);
 
 export const library = pgTable(
   "library",
@@ -20,8 +27,12 @@ export const libraryItem = pgTable("library_item", {
   title: text().notNull(),
   description: text().notNull(),
   uploadLink: text().notNull(),
+  fileSize: text().notNull(),
+  status: libraryItemStatus("processing").notNull(),
   createdAt: timestamp({ mode: "string" }).defaultNow(),
   updatedAt: timestamp({ mode: "string" }),
+  tags: text().array().default([]),
+
   libraryId: text()
     .notNull()
     .references(() => library.id, { onDelete: "cascade" }),

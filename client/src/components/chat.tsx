@@ -1,4 +1,3 @@
-"use client";
 import {
   ChatInput,
   ChatInputSubmit,
@@ -9,21 +8,53 @@ import {
   ChatMessageAvatar,
   ChatMessageContent,
 } from "@/components/ui/chat-message";
+import { useRouter } from "@tanstack/react-router";
 import { ChatMessageArea } from "@/components/ui/chat-message-area";
 import { useChat } from "@ai-sdk/react";
 import type { ComponentPropsWithoutRef } from "react";
 import { env } from "@/config/env";
-import { useMemo } from "react";
-export function Chat({ className, ...props }: ComponentPropsWithoutRef<"div">) {
-  const threadId = useMemo(
-    () => `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    []
+import { toast } from "sonner";
+import { useUserStore } from "@/store/user.store";
+import { useState } from "react";
+import { useParams } from "@tanstack/react-router";
+import { useMutation } from "@tanstack/react-query";
+import { trpc } from "@/integrations/tanstack-query/root-provider";
+interface ChatProps extends ComponentPropsWithoutRef<"div"> {
+  initialThreadId?: string;
+}
+
+export async function Chat({
+  className,
+  initialThreadId,
+  ...props
+}: ChatProps) {
+  const { threadId: threadIdParam } = useParams({
+    from: "/_authenticated/chat/{-$threadId}",
+  });
+  const user = useUserStore((state) => state.user);
+  const resourceId = user?.id!;
+  const router = useRouter();
+  const [threadId, setThreadId] = useState<string | null>(
+    threadIdParam || initialThreadId || null
   );
-  const resourceId = "chat";
+
+  const createThread = useMutation(
+    trpc.chat.createChat.mutationOptions({
+      onSuccess: (data) => {
+        setThreadId(data);
+      },
+      onError: (error) => {
+        toast.error(`Failed to create chat thread: ${error.message}`, {
+          position: "top-right",
+        });
+      },
+    })
+  );
 
   const { messages, input, handleInputChange, handleSubmit, status, stop } =
     useChat({
       api: `${env.VITE_API_BASE_URL}/api/chat`,
+      credentials: "include",
 
       // Configure to send only the latest message along with threadId and resourceId
       experimental_prepareRequestBody: (request) => {
@@ -40,10 +71,24 @@ export function Chat({ className, ...props }: ComponentPropsWithoutRef<"div">) {
           resourceId,
         };
       },
-      onFinish: () => {
-        //console.log("onFinish", message, completion);
+
+      onFinish: async (message, { finishReason }) => {
+        // If this is the first message and we don't have a threadId yet,
+        // create a new chat and navigate to the dynamic route
       },
     });
+
+  if (!threadId) {
+    try {
+      const newThreadId = await createThread.mutateAsync();
+
+      setThreadId(newThreadId);
+
+      router.history.replace(`/chat/${newThreadId}`);
+    } catch (error) {
+      console.error("Failed to create chat thread:", error);
+    }
+  }
 
   const handleSubmitMessage = () => {
     if (status === "streaming") {
@@ -53,7 +98,7 @@ export function Chat({ className, ...props }: ComponentPropsWithoutRef<"div">) {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full" {...props}>
+    <div className="flex flex-col h-screen" {...props}>
       <ChatMessageArea scrollButtonAlignment="center" className="flex-1">
         <div className="max-w-2xl mx-auto w-full px-4 py-8 space-y-4">
           {messages.length === 0 ? (
@@ -61,7 +106,10 @@ export function Chat({ className, ...props }: ComponentPropsWithoutRef<"div">) {
               <h2 className="text-2xl font-bold mb-2 text-foreground">
                 Chat with AI Assistant
               </h2>
-              <p>Start a conversation by type a message below.</p>
+              <p>Start a conversation by typing a message below.</p>
+              {threadId && (
+                <p className="text-sm mt-2">Thread ID: {threadId}</p>
+              )}
             </div>
           ) : (
             messages.map((message) => {
@@ -88,7 +136,7 @@ export function Chat({ className, ...props }: ComponentPropsWithoutRef<"div">) {
         </div>
       </ChatMessageArea>
       <div className="pt-2 flex justify-center">
-        <div className="bg-muted/30 rounded-t-lg pt-2 px-2 max-w-3xl w-full mx-2">
+        <div className="bg-muted/30 rounded-t-lg pt-1 px-1 max-w-3xl w-full mx-2">
           <ChatInput
             value={input}
             onChange={handleInputChange}

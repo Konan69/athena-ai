@@ -4,6 +4,7 @@ import { mastra as mastraSchema } from "../../db/schemas";
 import { mastra } from "../../mastra";
 import { ChatRequest } from "./validators";
 import { memory } from "../../config/memory";
+import { HTTPException } from "hono/http-exception";
 
 export class ChatService {
   async processChat(request: ChatRequest) {
@@ -11,13 +12,13 @@ export class ChatService {
 
     // Handle cases where message might be null (e.g., initial load or error)
     if (!message || !message.content) {
-      throw new Error("Missing message content");
+      throw new HTTPException(400, { message: "Missing message content" });
     }
 
     // Get the agent from Mastra
     const agent = mastra.getAgents().athenaAI;
     if (!agent) {
-      throw new Error("Agent not found");
+      throw new HTTPException(500, { message: "Agent not found" });
     }
 
     // Process with memory using the single message content

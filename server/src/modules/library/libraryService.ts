@@ -32,7 +32,9 @@ export class LibraryService {
         title: payload.title,
         description: payload.description,
         uploadLink: payload.uploadLink,
+        status: "processing",
         libraryId: userLibrary.id,
+        fileSize: payload.fileSize, //TODO: get filesize from the s3
       })
       .returning();
     return data;

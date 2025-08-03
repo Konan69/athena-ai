@@ -24,9 +24,6 @@ import { MessageCircle, SquarePen, BookOpen } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
 
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/config/trpc";
-
 // This is sample data.
 const data = {
   recentChats: [
@@ -86,12 +83,9 @@ const data = {
 
 export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate();
-  const trpc = useTRPC();
-  const chats = useQuery(trpc.chat.getChats.queryOptions());
 
-  // const data = chats.data;
   const handleNewChat = () => {
-    navigate({ to: "/chat" });
+    navigate({ to: "/" });
   };
   // const transformedData = data?.map((chat) => ({
   //   title: chat.title

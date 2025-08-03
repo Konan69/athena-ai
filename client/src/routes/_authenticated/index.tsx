@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Chat } from "@/components/chat";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/")({
-  component: Chat,
+  beforeLoad: () => {
+    throw redirect({
+      to: "/chat/{-$threadId}",
+    });
+  },
 });
