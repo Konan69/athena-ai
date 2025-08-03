@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -30,6 +32,7 @@ import {
   FileImage,
   Copy,
   Star,
+  Trash2,
 } from "lucide-react";
 
 interface Project {
@@ -86,6 +89,13 @@ interface InputModalProps {
 export default function InputModal({ isOpen, onOpenChange }: InputModalProps) {
   const [activeTab, setActiveTab] = useState("upload");
   const [urlInput, setUrlInput] = useState("");
+  // New state for upload + metadata
+  const [file, setFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selected, setSelected] = useState("morgan");
@@ -142,21 +152,20 @@ export default function InputModal({ isOpen, onOpenChange }: InputModalProps) {
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
           >
-            <Card className="w-full max-h-[85vh] overflow-y-auto rounded-3xl shadow-2xl border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950">
-              <CardContent className="p-4 sm:p-6 lg:p-8 h-full overflow-y-auto">
+            <Card className="w-full max-h-[85vh] overflow-y-auto rounded-3xl shadow-2xl border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 [scrollbar-width:none] [-ms-overflow-style:none] overflow-x-hidden">
+              <CardContent className="p-4 sm:p-6 lg:p-8 h-full overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] overflow-x-hidden">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex gap-3 sm:gap-4 flex-1">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-neutral-800 dark:bg-neutral-700 rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <Headphones className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h1 className="text-base sm:text-lg font-semibold mb-2 text-neutral-900 dark:text-neutral-100">
-                        Create Your Audio Show
+                        Upload Knowledge Object
                       </h1>
                       <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed font-normal">
-                        Drop a document or paste a link — GenFM will instantly
-                        turn it into a fully voiced podcast you can preview,
-                        edit, and download.
+                        Add a new document to your knowledge base. PDF, DOCX,
+                        TXT, and MD files up to 10MB are supported.
                       </p>
                     </div>
                   </div>
@@ -174,7 +183,7 @@ export default function InputModal({ isOpen, onOpenChange }: InputModalProps) {
                   onValueChange={setActiveTab}
                   className="mb-6 sm:mb-8"
                 >
-                  <TabsList className="grid w-full grid-cols-3 rounded-xl p-1 bg-neutral-100 dark:bg-neutral-800">
+                  <TabsList className="grid w-full grid-cols-2 rounded-xl p-1 bg-neutral-100 dark:bg-neutral-800">
                     <TabsTrigger
                       value="upload"
                       className="rounded-lg font-medium text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-neutral-900 dark:data-[state=active]:bg-neutral-700 dark:data-[state=active]:text-neutral-100"
@@ -191,15 +200,9 @@ export default function InputModal({ isOpen, onOpenChange }: InputModalProps) {
                       <span className="hidden sm:inline">Import via URL</span>
                       <span className="sm:hidden">URL</span>
                     </TabsTrigger>
-                    <TabsTrigger
-                      value="existing"
-                      className="rounded-lg font-medium text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-neutral-900 dark:data-[state=active]:bg-neutral-700 dark:data-[state=active]:text-neutral-100"
-                    >
-                      <FolderOpen className="w-4 h-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">Choose Existing</span>
-                      <span className="sm:hidden">Existing</span>
-                    </TabsTrigger>
                   </TabsList>
+
+                  {/* Upload tab */}
                   <TabsContent value="upload" className="mt-6">
                     <AnimatePresence mode="wait">
                       {activeTab === "upload" && (
@@ -209,28 +212,225 @@ export default function InputModal({ isOpen, onOpenChange }: InputModalProps) {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -4 }}
                           transition={{ duration: 0.15 }}
+                          className="space-y-6"
                         >
-                          <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl p-8 text-center bg-neutral-50 dark:bg-neutral-900/50">
-                            <div className="w-12 h-12 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <Upload className="w-6 h-6 text-neutral-600 dark:text-neutral-400" />
+                          <div
+                            onDragEnter={(e) => {
+                              e.preventDefault();
+                              setDragActive(true);
+                            }}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              setDragActive(true);
+                            }}
+                            onDragLeave={(e) => {
+                              e.preventDefault();
+                              setDragActive(false);
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              setDragActive(false);
+                              const f = e.dataTransfer.files?.[0];
+                              if (!f) return;
+                              if (
+                                f.size > 10 * 1024 * 1024 ||
+                                !/\.(pdf|docx|txt|md)$/i.test(f.name)
+                              ) {
+                                return;
+                              }
+                              setFile(f);
+                              if (!title) {
+                                setTitle(f.name.replace(/\.[^/.]+$/, ""));
+                              }
+                            }}
+                            className={cn(
+                              "border-2 border-dashed rounded-xl p-8 text-center",
+                              "bg-neutral-50 dark:bg-neutral-900/50",
+                              dragActive
+                                ? "border-neutral-500 dark:border-neutral-500"
+                                : "border-neutral-300 dark:border-neutral-700"
+                            )}
+                          >
+                            {!file ? (
+                              <>
+                                <div className="w-12 h-12 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <Upload className="w-6 h-6 text-neutral-600 dark:text-neutral-400" />
+                                </div>
+                                <h3 className="text-lg font-medium mb-2 text-neutral-900 dark:text-neutral-100">
+                                  Drag & drop your file here
+                                </h3>
+                                <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+                                  PDF, DOCX, TXT, MD up to 10MB
+                                </p>
+                                <div>
+                                  <input
+                                    id="file-input"
+                                    type="file"
+                                    accept=".pdf,.docx,.txt,.md"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const f = e.target.files?.[0];
+                                      if (!f) return;
+                                      if (
+                                        f.size > 10 * 1024 * 1024 ||
+                                        !/\.(pdf|docx|txt|md)$/i.test(f.name)
+                                      ) {
+                                        return;
+                                      }
+                                      setFile(f);
+                                      if (!title) {
+                                        setTitle(
+                                          f.name.replace(/\.[^/.]+$/, "")
+                                        );
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    className="border-neutral-300 dark:border-neutral-700 bg-transparent"
+                                    onClick={() =>
+                                      document
+                                        .getElementById("file-input")
+                                        ?.click()
+                                    }
+                                  >
+                                    Browse Files
+                                  </Button>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="flex items-center justify-between gap-4 text-left">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-10 h-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 grid place-items-center flex-shrink-0">
+                                    <FileText className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="font-medium text-neutral-900 dark:text-neutral-100 break-words">
+                                      {file.name}
+                                    </div>
+                                    <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                                      {(file.size / 1024 / 1024).toFixed(2)} MB
+                                    </div>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setFile(null)}
+                                  className="text-neutral-500 hover:text-neutral-700"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-4">
+                            <div>
+                              <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                Title
+                              </Label>
+                              <Input
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="Enter a title"
+                                className="mt-2 h-10 rounded-xl border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
+                              />
                             </div>
-                            <h3 className="text-lg font-medium mb-2 text-neutral-900 dark:text-neutral-100">
-                              Drop your file here
-                            </h3>
-                            <p className="text-neutral-600 dark:text-neutral-400 mb-4">
-                              Support for PDF, DOCX, TXT files up to 10MB
-                            </p>
-                            <Button
-                              variant="outline"
-                              className="border-neutral-300 dark:border-neutral-700 bg-transparent"
-                            >
-                              Browse Files
-                            </Button>
+                            <div>
+                              <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                Description
+                              </Label>
+                              <Textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="Describe this document..."
+                                className="mt-2 min-h-[90px] rounded-xl border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                Tags
+                              </Label>
+                              <div
+                                className="mt-2 flex items-center flex-wrap gap-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5"
+                                onClick={() =>
+                                  document.getElementById("tag-input")?.focus()
+                                }
+                              >
+                                {tags.map((t) => (
+                                  <span
+                                    key={t}
+                                    className="inline-flex items-center gap-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 px-2 py-0.5 text-xs"
+                                  >
+                                    {t}
+                                    <button
+                                      type="button"
+                                      className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTags(tags.filter((x) => x !== t));
+                                      }}
+                                      aria-label={`Remove ${t}`}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </span>
+                                ))}
+                                <input
+                                  id="tag-input"
+                                  value={tagInput}
+                                  onChange={(e) => setTagInput(e.target.value)}
+                                  placeholder={
+                                    tags.length
+                                      ? ""
+                                      : "Type a tag and press Enter or click Add"
+                                  }
+                                  className="flex-1 min-w-[120px] bg-transparent outline-none h-7 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      const raw = tagInput.trim();
+                                      if (!raw) return;
+                                      const t = raw.toLowerCase();
+                                      if (tags.includes(t)) return;
+                                      setTags([...tags, t]);
+                                      setTagInput("");
+                                    }
+                                    if (
+                                      e.key === "Backspace" &&
+                                      !tagInput &&
+                                      tags.length
+                                    ) {
+                                      // quick remove last tag
+                                      setTags(tags.slice(0, -1));
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 ml-auto"
+                                  onClick={() => {
+                                    const raw = tagInput.trim();
+                                    if (!raw) return;
+                                    const t = raw.toLowerCase();
+                                    if (tags.includes(t)) return;
+                                    setTags([...tags, t]);
+                                    setTagInput("");
+                                  }}
+                                >
+                                  Add
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </TabsContent>
+
+                  {/* URL tab (website scraping concept) */}
                   <TabsContent value="url" className="mt-6">
                     <AnimatePresence mode="wait">
                       {activeTab === "url" && (
@@ -240,6 +440,7 @@ export default function InputModal({ isOpen, onOpenChange }: InputModalProps) {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -4 }}
                           transition={{ duration: 0.15 }}
+                          className="space-y-6"
                         >
                           <div className="space-y-4">
                             <div>
@@ -247,150 +448,124 @@ export default function InputModal({ isOpen, onOpenChange }: InputModalProps) {
                                 htmlFor="url-input"
                                 className="text-sm font-medium text-neutral-900 dark:text-neutral-100"
                               >
-                                Content URL
+                                Website URL
                               </Label>
                               <div className="mt-2">
                                 <Input
                                   id="url-input"
                                   type="url"
-                                  placeholder="https://example.com/article or YouTube URL"
+                                  placeholder="https://example.com/article"
                                   value={urlInput}
                                   onChange={(e) => setUrlInput(e.target.value)}
                                   className="w-full h-12 rounded-xl border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
                                 />
                               </div>
+                              <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-400">
+                                We’ll fetch and parse the readable content from
+                                the page, removing ads and navigation.
+                              </p>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                              <div className="flex items-center gap-2 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50">
-                                <Globe className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                                <span className="text-xs text-neutral-600 dark:text-neutral-400">
-                                  Articles
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50">
-                                <Youtube className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                                <span className="text-xs text-neutral-600 dark:text-neutral-400">
-                                  YouTube
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50">
-                                <FileText className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                                <span className="text-xs text-neutral-600 dark:text-neutral-400">
-                                  Blogs
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50">
-                                <FileImage className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                                <span className="text-xs text-neutral-600 dark:text-neutral-400">
-                                  News
-                                </span>
-                              </div>
-                            </div>
-                            {urlInput && (
-                              <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
-                                    <Globe className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                                      Ready to import content
-                                    </p>
-                                    <p className="text-xs text-neutral-600 dark:text-neutral-400 truncate">
-                                      {urlInput}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </TabsContent>
-                  <TabsContent value="existing" className="mt-6">
-                    <AnimatePresence mode="wait">
-                      {activeTab === "existing" && (
-                        <motion.div
-                          key="tab-existing"
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          transition={{ duration: 0.15 }}
-                        >
+
                           <div className="space-y-4">
-                            <div className="relative">
-                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                            <div>
+                              <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                Title
+                              </Label>
                               <Input
-                                placeholder="Search projects..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 h-12 rounded-xl border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="Optional — auto-filled after fetch"
+                                className="mt-2 h-10 rounded-xl border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
                               />
                             </div>
-                            <div className="max-h-64 overflow-y-auto space-y-2">
-                              {filteredProjects.map((project) => (
-                                <div
-                                  key={project.id}
-                                  onClick={() => setSelectedProject(project.id)}
-                                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                                    selectedProject === project.id
-                                      ? "border-neutral-400 dark:border-neutral-600 bg-neutral-100 dark:bg-neutral-800"
-                                      : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 bg-white dark:bg-neutral-900/50"
-                                  }`}
+                            <div>
+                              <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                Description
+                              </Label>
+                              <Textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="Optional summary or context..."
+                                className="mt-2 min-h-[90px] rounded-xl border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                Tags
+                              </Label>
+                              <div
+                                className="mt-2 flex items-center flex-wrap gap-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5"
+                                onClick={() =>
+                                  document
+                                    .getElementById("tag-input-url")
+                                    ?.focus()
+                                }
+                              >
+                                {tags.map((t) => (
+                                  <span
+                                    key={t}
+                                    className="inline-flex items-center gap-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 px-2 py-0.5 text-xs"
+                                  >
+                                    {t}
+                                    <button
+                                      type="button"
+                                      className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTags(tags.filter((x) => x !== t));
+                                      }}
+                                      aria-label={`Remove ${t}`}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </span>
+                                ))}
+                                <input
+                                  id="tag-input-url"
+                                  value={tagInput}
+                                  onChange={(e) => setTagInput(e.target.value)}
+                                  placeholder={
+                                    tags.length
+                                      ? ""
+                                      : "Type a tag and press Enter or click Add"
+                                  }
+                                  className="flex-1 min-w-[120px] bg-transparent outline-none h-7 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      const raw = tagInput.trim();
+                                      if (!raw) return;
+                                      const t = raw.toLowerCase();
+                                      if (tags.includes(t)) return;
+                                      setTags([...tags, t]);
+                                      setTagInput("");
+                                    }
+                                    if (
+                                      e.key === "Backspace" &&
+                                      !tagInput &&
+                                      tags.length
+                                    ) {
+                                      setTags(tags.slice(0, -1));
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 ml-auto"
+                                  onClick={() => {
+                                    const raw = tagInput.trim();
+                                    if (!raw) return;
+                                    const t = raw.toLowerCase();
+                                    if (tags.includes(t)) return;
+                                    setTags([...tags, t]);
+                                    setTagInput("");
+                                  }}
                                 >
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
-                                      {getProjectIcon(project.type)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                                          {project.name}
-                                        </p>
-                                        <Badge
-                                          className={`text-xs px-2 py-0.5 ${getStatusColor(
-                                            project.status
-                                          )}`}
-                                        >
-                                          {project.status}
-                                        </Badge>
-                                      </div>
-                                      <div className="flex items-center gap-4 text-xs text-neutral-600 dark:text-neutral-400">
-                                        <span className="flex items-center gap-1">
-                                          <Clock className="w-3 h-3" />
-                                          {project.createdAt}
-                                        </span>
-                                        {project.size && (
-                                          <span>{project.size}</span>
-                                        )}
-                                        {project.duration && (
-                                          <span className="flex items-center gap-1">
-                                            <Play className="w-3 h-3" />
-                                            {project.duration}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="w-8 h-8"
-                                      >
-                                        <Copy className="w-3 h-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="w-8 h-8"
-                                      >
-                                        <Star className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
+                                  Add
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </motion.div>
@@ -398,172 +573,59 @@ export default function InputModal({ isOpen, onOpenChange }: InputModalProps) {
                     </AnimatePresence>
                   </TabsContent>
                 </Tabs>
-                <div className="space-y-6">
-                  <div>
-                    <Label className="block text-sm font-medium mb-3 text-neutral-900 dark:text-neutral-100">
-                      Format Style
-                    </Label>
-                    <Select defaultValue="default" onValueChange={setSelected5}>
-                      <SelectTrigger className="w-full border-neutral-300 dark:border-neutral-700 rounded-xl h-12 bg-white dark:bg-neutral-900">
-                        <div className="flex items-center justify-between w-full">
-                          <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                            {selected5 || "Interview Mode"}
-                          </span>
-                          <div className="bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 px-2 py-1 mr-2 rounded-md text-xs">
-                            Default
-                          </div>
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Interview Mode</SelectItem>
-                        <SelectItem value="narrative">
-                          Narrative Style
-                        </SelectItem>
-                        <SelectItem value="discussion">
-                          Panel Discussion
-                        </SelectItem>
-                        <SelectItem value="monologue">
-                          Solo Monologue
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <Label className="block text-sm font-medium mb-3 text-neutral-900 dark:text-neutral-100">
-                        Host Voice
-                      </Label>
-                      <Select defaultValue="alex" onValueChange={setSelected2}>
-                        <SelectTrigger className="w-full border-neutral-300 dark:border-neutral-700 rounded-xl h-12 bg-white dark:bg-neutral-900">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-6 h-6">
-                              <AvatarImage src="/voice1.png" alt="Alex" />
-                            </Avatar>
-                            <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                              {selected2 || "alex"}
-                            </span>
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="alex">Alex</SelectItem>
-                          <SelectItem value="sarah">Sarah</SelectItem>
-                          <SelectItem value="mike">Mike</SelectItem>
-                          <SelectItem value="emma">Emma</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="block text-sm font-medium mb-3 text-neutral-900 dark:text-neutral-100">
-                        Guest Voice
-                      </Label>
-                      <Select defaultValue="morgan" onValueChange={setSelected}>
-                        <SelectTrigger className="w-full border-neutral-300 dark:border-neutral-700 rounded-xl h-12 bg-white dark:bg-neutral-900">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-6 h-6">
-                              <AvatarImage src="/voice2.png" alt="Morgan" />
-                            </Avatar>
-                            <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                              {selected}
-                            </span>
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="morgan">Morgan</SelectItem>
-                          <SelectItem value="jordan">Jordan</SelectItem>
-                          <SelectItem value="taylor">Taylor</SelectItem>
-                          <SelectItem value="casey">Casey</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <Label className="block text-sm font-medium mb-3 text-neutral-900 dark:text-neutral-100">
-                        Voice Engine
-                      </Label>
-                      <Select
-                        defaultValue="eleven-v2"
-                        onValueChange={setSelected3}
-                      >
-                        <SelectTrigger className="w-full border-neutral-300 dark:border-neutral-700 rounded-xl h-12 bg-white dark:bg-neutral-900">
-                          <div className="flex items-center justify-between w-full">
-                            <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                              {selected3 || "Eleven AI v2"}
-                            </span>
-                            <div className="bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 px-2 py-1 mr-2 rounded-md text-xs">
-                              Multilingual
-                            </div>
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="eleven-v2">
-                            Eleven AI v2
-                          </SelectItem>
-                          <SelectItem value="eleven-v1">
-                            Eleven AI v1
-                          </SelectItem>
-                          <SelectItem value="openai">OpenAI TTS</SelectItem>
-                          <SelectItem value="azure">Azure Speech</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="block text-sm font-medium mb-3 text-neutral-900 dark:text-neutral-100">
-                        Language
-                      </Label>
-                      <Select defaultValue="auto" onValueChange={setSelected4}>
-                        <SelectTrigger className="w-full border-neutral-300 dark:border-neutral-700 rounded-xl h-12 bg-white dark:bg-neutral-900">
-                          <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                            {selected4 || "Auto-detect"}
-                          </span>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="auto">Auto-detect</SelectItem>
-                          <SelectItem value="english">English</SelectItem>
-                          <SelectItem value="spanish">Spanish</SelectItem>
-                          <SelectItem value="french">French</SelectItem>
-                          <SelectItem value="german">German</SelectItem>
-                          <SelectItem value="italian">Italian</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="block text-sm font-medium mb-3 text-neutral-900 dark:text-neutral-100">
-                      Audio Quality
-                    </Label>
-                    <Select defaultValue="studio" onValueChange={setSelected6}>
-                      <SelectTrigger className="w-full border-neutral-300 dark:border-neutral-700 rounded-xl h-12 bg-white dark:bg-neutral-900">
-                        <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                          {selected6 || "Studio Quality"}
-                        </span>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="studio">Studio Quality</SelectItem>
-                        <SelectItem value="high">High Quality</SelectItem>
-                        <SelectItem value="standard">
-                          Standard Quality
-                        </SelectItem>
-                        <SelectItem value="compressed">Compressed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+
+                {/* Footer actions */}
                 <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-5 mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-800">
                   <Button
                     variant="outline"
                     className="rounded-xl px-4 sm:px-6 h-12 border-neutral-300 dark:border-neutral-700 bg-transparent text-sm flex items-center justify-center order-2 sm:order-1"
+                    onClick={() => {
+                      // reset simple state and close
+                      setFile(null);
+                      setTitle("");
+                      setDescription("");
+                      setTags([]);
+                      setTagInput("");
+                      setUrlInput("");
+                      onOpenChange(false);
+                    }}
                   >
-                    <ArrowDownNarrowWide className="h-4 w-4 mr-2" />
-                    Recent
-                    <ChevronDown className="w-4 h-4 ml-2" />
+                    Cancel
                   </Button>
-                  <Button className="bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-neutral-200 dark:text-neutral-900 text-white rounded-xl px-6 sm:px-8 h-12 font-medium order-1 sm:order-2">
-                    Generate
+                  <Button
+                    disabled={
+                      activeTab === "upload"
+                        ? !file || !title
+                        : !urlInput || !title
+                    }
+                    className="bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-neutral-200 dark:text-neutral-900 text-white rounded-xl px-6 sm:px-8 h-12 font-medium order-1 sm:order-2"
+                    onClick={() => {
+                      // Simulate submission success
+                      setFile(null);
+                      setTitle("");
+                      setDescription("");
+                      setTags([]);
+                      setTagInput("");
+                      setUrlInput("");
+                      onOpenChange(false);
+                    }}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {activeTab === "upload" ? "Upload Document" : "Import URL"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
+            <style>{`
+              /* Hide scrollbar for Chrome, Safari and Opera */
+              .max-h\\[85vh\\]::-webkit-scrollbar,
+              .h-full::-webkit-scrollbar {
+                display: none;
+                width: 0;
+                height: 0;
+                background: transparent;
+              }
+            `}</style>
           </motion.div>
         </div>
       )}
