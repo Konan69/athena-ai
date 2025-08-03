@@ -10,7 +10,17 @@ import {
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Upload, Search, Clock, X } from "lucide-react";
+import {
+  FileText,
+  Upload,
+  Search,
+  Clock,
+  X,
+  Book,
+  BookAIcon,
+  BookOpen,
+  BookHeartIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/config/trpc";
 import { useQuery } from "@tanstack/react-query";
@@ -34,6 +44,7 @@ export function LibraryPage() {
     trpc.library.getLibraryItems.queryOptions()
   );
   const [objects, setObjects] = useState<KnowledgeObject[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "ready" | "processing" | "failed"
@@ -92,13 +103,16 @@ export function LibraryPage() {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center">
             <EmptyState
-              title="No knowledge objects yet"
+              title="Nothing in your library yet"
               description="Upload your first document to start building your knowledge base. PDF, DOCX, TXT, and MD files up to 10MB are supported."
-              icons={[FileText, FileText, FileText]}
+              icons={[BookOpen, BookHeartIcon, FileText]}
+              action={{
+                label: "Upload Document",
+                onClick: () => setIsModalOpen(true),
+              }}
             />
-            <div className="mt-4">
-              <InputModal />
-            </div>
+            <div className="mt-4" />
+            <InputModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
           </div>
         </div>
       </>
@@ -111,11 +125,11 @@ export function LibraryPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Library</h1>
-            <Button>
+            <Button onClick={() => setIsModalOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />
               Upload Document
             </Button>
-            <InputModal />
+            <InputModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
           </div>
 
           <div className="flex gap-4 mb-6">
