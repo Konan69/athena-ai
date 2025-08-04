@@ -9,7 +9,7 @@ import { resolve } from "node:path";
 export default defineConfig({
   plugins: [
     tanstackRouter({
-      // autoCodeSplitting: true,
+      autoCodeSplitting: true,
     }),
     viteReact(),
     tailwindcss(),

@@ -55,4 +55,5 @@ app
 export default {
   fetch: app.fetch,
   port: parseInt(PORT),
+  idleTimeout: 30,
 };

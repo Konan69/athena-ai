@@ -32,6 +32,7 @@ export const logger = pinoLogger({
     onReqBindings: (c) => ({
       url: c.req.raw.url,
       method: c.req.raw.method,
+      body: c.req.raw.body,
       host: c.req.raw.headers.get("host"),
     }),
     onResBindings: (c) => ({
@@ -40,6 +41,7 @@ export const logger = pinoLogger({
       },
     }),
     responseTime: true,
-    onResMessage: (c) => `${c.req.method} ${c.req.path} `,
+    onResMessage: (c) =>
+      `${c.req.method} ${c.req.path} status: ${c.res.status} body: ${c.req.raw.body}`,
   },
 });

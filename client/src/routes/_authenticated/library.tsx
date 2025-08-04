@@ -28,10 +28,9 @@ export const Route = createFileRoute("/_authenticated/library")({
   loader: async ({ context }) => {
     const trpc = context.trpc;
     const qc = context.queryClient;
-    const data = await qc.ensureQueryData(
+    const data = await qc.fetchQuery(
       trpc.library.getLibraryItems.queryOptions()
     );
-    console.log("data", data);
     return { data };
   },
   pendingComponent: () => <div>Loading...</div>,

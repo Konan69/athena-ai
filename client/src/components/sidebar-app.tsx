@@ -21,75 +21,113 @@ import {
 } from "@/components/ui/tooltip";
 import { NavUser } from "@/components/nav-user";
 import { MessageCircle, SquarePen, BookOpen } from "lucide-react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  formatDistanceToNow,
+  isAfter,
+  subDays,
+  subWeeks,
+  subMonths,
+  parseISO,
+} from "date-fns";
+import { trpc } from "@/integrations/tanstack-query/root-provider";
+import { toast } from "sonner";
 
-// This is sample data.
-const data = {
-  recentChats: [
-    {
-      title: "Research Strategy Discussion",
-      date: new Date(2024, 2, 20),
-      url: "/chat",
-    },
-    {
-      title: "Data Analysis Helper",
-      date: new Date(2024, 2, 19),
-      url: "/chat",
-    },
-    {
-      title: "Market Research Chat",
-      date: new Date(2024, 2, 18),
-      url: "/chat",
-    },
-  ],
-  lastWeekChats: [
-    {
-      title: "Competitive Analysis",
-      date: new Date(2024, 2, 15),
-      url: "/chat",
-    },
-    {
-      title: "Product Requirements",
-      date: new Date(2024, 2, 14),
-      url: "/chat",
-    },
-  ],
-  lastMonthChats: [
-    {
-      title: "Industry Trends Overview",
-      date: new Date(2024, 1, 28),
-      url: "/chat",
-    },
-    {
-      title: "Technical Deep Dive",
-      date: new Date(2024, 1, 25),
-      url: "/chat",
-    },
-  ],
-  previousChats: [
-    {
-      title: "Initial Research Setup",
-      date: new Date(2023, 11, 15),
-      url: "/chat",
-    },
-    {
-      title: "Knowledge Base Query",
-      date: new Date(2023, 11, 10),
-      url: "/chat",
-    },
-  ],
+type ChatItem = {
+  id: string;
+  resourceId: string;
+  title: string;
+  metadata: string | null;
+  createdAt: string; // ISO
+  updatedAt: string; // ISO
+  createdAtZ: string | null;
+  updatedAtZ: string | null;
 };
 
-export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
-  const navigate = useNavigate();
+type Grouped = {
+  recent: ChatItem[];
+  lastWeek: ChatItem[];
+  lastMonth: ChatItem[];
+  previous: ChatItem[];
+};
 
-  const handleNewChat = () => {
-    navigate({ to: "/" });
+function groupChats(items: ChatItem[]): Grouped {
+  const now = new Date();
+  const last7 = subWeeks(now, 1);
+  const last30 = subMonths(now, 1);
+
+  const groups: Grouped = {
+    recent: [],
+    lastWeek: [],
+    lastMonth: [],
+    previous: [],
   };
-  // const transformedData = data?.map((chat) => ({
-  //   title: chat.title
-  // }))
+
+  for (const it of items) {
+    const d = parseISO(it.updatedAt ?? it.createdAt);
+    if (isAfter(d, last7)) {
+      groups.recent.push(it);
+    } else if (isAfter(d, last30)) {
+      groups.lastWeek.push(it);
+    } else if (isAfter(d, subMonths(now, 12))) {
+      groups.lastMonth.push(it);
+    } else {
+      groups.previous.push(it);
+    }
+  }
+
+  return groups;
+}
+
+function humanizeDate(iso: string) {
+  try {
+    return formatDistanceToNow(parseISO(iso), { addSuffix: true });
+  } catch {
+    return "";
+  }
+}
+
+function RetryError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-8">
+      <div className="text-destructive mb-2">Failed to load chats.</div>
+      <Button variant="outline" onClick={onRetry}>
+        Retry
+      </Button>
+    </div>
+  );
+}
+
+export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
+  const router = useRouter();
+  const navigate = router.navigate;
+  const handleNewChat = () => {
+    // Navigate to root and reset any chat state
+    navigate({
+      to: "/",
+      replace: true, // This will replace current history entry
+    });
+  };
+
+  const { data, isLoading, error, refetch } = useQuery(
+    trpc.chat.getChats.queryOptions()
+  );
+
+  const preloadChat = (id: string) => {
+    router.preloadRoute({
+      to: "/chat/{-$threadId}",
+      params: { threadId: id },
+    });
+  };
+
+  const navigateToChat = (id: string) => {
+    navigate({
+      to: "/chat/{-$threadId}",
+      params: { threadId: id },
+    });
+  };
 
   return (
     <Sidebar className="border-r-0" {...props}>
@@ -123,73 +161,120 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <div className="flex flex-col gap-4">
-          {/* Recent Chats */}
-          <SidebarGroup>
-            <SidebarGroupLabel>Recent</SidebarGroupLabel>
-            <SidebarMenu>
-              {data.recentChats.map((chat) => (
-                <SidebarMenuItem key={chat.title}>
-                  <SidebarMenuButton asChild className="w-full justify-start">
-                    <Link to={chat.url}>
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      {chat.title}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
+          {isLoading && <div>Loading...</div>}
+          {error && <RetryError onRetry={refetch} />}
+          {data &&
+            Array.isArray(data) &&
+            (() => {
+              const groups = groupChats(data as ChatItem[]);
+              return (
+                <>
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Recent</SidebarGroupLabel>
+                    <SidebarMenu>
+                      {groups.recent.map((chat) => (
+                        <SidebarMenuItem key={chat.id}>
+                          <SidebarMenuButton
+                            className="w-full justify-start"
+                            tooltip={humanizeDate(
+                              chat.updatedAt || chat.createdAt
+                            )}
+                            onMouseEnter={() => preloadChat(chat.id)}
+                            onClick={() => navigateToChat(chat.id)}
+                          >
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            <span className="truncate">
+                              {chat.title || "Untitled chat"}
+                            </span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroup>
 
-          {/* Previous 7 Days */}
-          <SidebarGroup>
-            <SidebarGroupLabel>Previous 7 Days</SidebarGroupLabel>
-            <SidebarMenu>
-              {data.lastWeekChats.map((chat) => (
-                <SidebarMenuItem key={chat.title}>
-                  <SidebarMenuButton asChild className="w-full justify-start">
-                    <Link to={chat.url}>
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      {chat.title}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Previous 7 Days</SidebarGroupLabel>
+                    <SidebarMenu>
+                      {groups.lastWeek.map((chat) => (
+                        <SidebarMenuItem key={chat.id}>
+                          <SidebarMenuButton
+                            className="w-full justify-start"
+                            tooltip={humanizeDate(
+                              chat.updatedAt || chat.createdAt
+                            )}
+                            onClick={() =>
+                              navigate({
+                                to: "/chat/{-$threadId}",
+                                params: { threadId: chat.id },
+                              })
+                            }
+                          >
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            <span className="truncate">
+                              {chat.title || "Untitled chat"}
+                            </span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroup>
 
-          {/* Previous 30 Days */}
-          <SidebarGroup>
-            <SidebarGroupLabel>Previous 30 Days</SidebarGroupLabel>
-            <SidebarMenu>
-              {data.lastMonthChats.map((chat) => (
-                <SidebarMenuItem key={chat.title}>
-                  <SidebarMenuButton asChild className="w-full justify-start">
-                    <Link to={chat.url}>
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      {chat.title}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Previous 30 Days</SidebarGroupLabel>
+                    <SidebarMenu>
+                      {groups.lastMonth.map((chat) => (
+                        <SidebarMenuItem key={chat.id}>
+                          <SidebarMenuButton
+                            className="w-full justify-start"
+                            tooltip={humanizeDate(
+                              chat.updatedAt || chat.createdAt
+                            )}
+                            onClick={() =>
+                              navigate({
+                                to: "/chat/{-$threadId}",
+                                params: { threadId: chat.id },
+                              })
+                            }
+                          >
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            <span className="truncate">
+                              {chat.title || "Untitled chat"}
+                            </span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroup>
 
-          {/* Previous Years */}
-          <SidebarGroup>
-            <SidebarGroupLabel>Previous Years</SidebarGroupLabel>
-            <SidebarMenu>
-              {data.previousChats.map((chat) => (
-                <SidebarMenuItem key={chat.title}>
-                  <SidebarMenuButton asChild className="w-full justify-start">
-                    <Link to={chat.url}>
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      {chat.title}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Previous</SidebarGroupLabel>
+                    <SidebarMenu>
+                      {groups.previous.map((chat) => (
+                        <SidebarMenuItem key={chat.id}>
+                          <SidebarMenuButton
+                            className="w-full justify-start"
+                            tooltip={humanizeDate(
+                              chat.updatedAt || chat.createdAt
+                            )}
+                            onClick={() =>
+                              navigate({
+                                to: "/chat/{-$threadId}",
+                                params: { threadId: chat.id },
+                              })
+                            }
+                          >
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            <span className="truncate">
+                              {chat.title || "Untitled chat"}
+                            </span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroup>
+                </>
+              );
+            })()}
         </div>
       </SidebarContent>
       <SidebarRail />

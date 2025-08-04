@@ -1,11 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AppRouter } from "@athena-ai/server/trpc";
-import {
-  createTRPCContext,
-  createTRPCOptionsProxy,
-} from "@trpc/tanstack-react-query";
-export const { TRPCProvider } = createTRPCContext<AppRouter>();
-
+import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import superjson from "superjson";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { env } from "@/config/env";

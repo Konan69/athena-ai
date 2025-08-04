@@ -10,6 +10,8 @@ export class ChatService {
   async processChat(request: ChatRequest) {
     const { message, threadId, resourceId } = request;
 
+    console.log(request);
+
     // Handle cases where message might be null (e.g., initial load or error)
     if (!message || !message.content) {
       throw new HTTPException(400, { message: "Missing message content" });
@@ -64,6 +66,18 @@ export class ChatService {
     });
 
     return chats.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getChatMessages(userId: string, threadId: string) {
+    const messages = await memory.query({
+      resourceId: userId,
+      threadId,
+      selectBy: {
+        last: false, // TODO: Add pagination
+      },
+    });
+
+    return messages;
   }
 
   async getChatsDrizzle(userId: string) {

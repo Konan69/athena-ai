@@ -11,7 +11,12 @@ const chatRouter = createApp();
 chatRouter.post("/", validateChatRequest, async (c) => {
   try {
     const body = c.req.valid("json");
-    const result = await chatService.processChat(body);
+    const resourceId = c.var.user?.id;
+    const request = {
+      ...body,
+      resourceId,
+    };
+    const result = await chatService.processChat(request);
 
     c.status(200);
     c.header("X-Vercel-AI-Data-Stream", "v1");
