@@ -202,10 +202,9 @@ function Sidebar({
       <div
         data-slot="sidebar-gap"
         className={cn(
-          // Fill the height, sit behind content (z-0), and ensure bg matches sidebar
-          "relative h-svh w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear z-0",
-          // Make the gap area explicitly use the sidebar background in inset mode
-          "group-data-[variant=inset]:bg-sidebar",
+          "relative h-svh w-(--sidebar-width) transition-[width] duration-200 ease-linear z-0",
+          // Subtle glass gap when inset to avoid harsh edge
+          "group-data-[variant=inset]:bg-sidebar/70 group-data-[variant=inset]:backdrop-blur-sm",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
@@ -220,13 +219,10 @@ function Sidebar({
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
-          // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
-          // Ensure no border shows on the sidebar edge for any variant.
           "border-0 group-data-[side=left]:border-r-0 group-data-[side=right]:border-l-0",
-          // Remove any visual rail/edge when inset is used
           "group-data-[variant=inset]:border-none group-data-[variant=inset]:shadow-none",
           className
         )}
@@ -235,7 +231,13 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm border-none"
+          className={cn(
+            // Glass surface base with subtle texture and border for all variants
+            "bg-sidebar/80 backdrop-blur-md supports-[backdrop-filter]:bg-sidebar/70",
+            " shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
+            "group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm",
+            "flex h-full w-full flex-col"
+          )}
         >
           {children}
         </div>
@@ -329,7 +331,11 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sidebar-header"
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn(
+        // Add subtle separation and polish
+        "flex flex-col gap-2 p-2",
+        className
+      )}
       {...props}
     />
   );
@@ -340,7 +346,7 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sidebar-footer"
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("flex flex-col gap-2 p-2", "", className)}
       {...props}
     />
   );
