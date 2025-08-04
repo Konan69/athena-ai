@@ -100,8 +100,10 @@ export const Route = createFileRoute("/_authenticated/chat/{-$threadId}")({
   ),
   pendingComponent: () => <ChatPending />,
 });
+
 function ChatPage() {
-  return <Chat />;
+  const { threadId } = Route.useParams();
+  return <Chat threadId={threadId} />;
 }
 
 function ChatPending() {
@@ -112,14 +114,10 @@ function ChatPending() {
   );
 }
 
-export function Chat({ ...props }: ComponentPropsWithoutRef<"div">) {
-  const { threadId: threadIdParam } = useParams({
-    from: "/_authenticated/chat/{-$threadId}",
-  });
+export function Chat({ ...props }: { threadId: string | undefined }) {
   const [currentThreadId, setCurrentThreadId] = useState<string | undefined>(
-    threadIdParam
+    props.threadId
   );
-  const router = useRouter();
   const [isCreatingAndSending, setIsCreatingAndSending] = useState(false);
   const { uiMessages } = Route.useLoaderData();
 
@@ -173,7 +171,7 @@ export function Chat({ ...props }: ComponentPropsWithoutRef<"div">) {
             : null;
 
         // Use the current thread ID (which gets updated after thread creation)
-        const activeThreadId = currentThreadId || threadIdParam;
+        const activeThreadId = currentThreadId;
 
         // Return the structured body for API route
         return {
