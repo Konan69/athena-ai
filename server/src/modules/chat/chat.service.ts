@@ -72,9 +72,7 @@ export class ChatService {
     const messages = await memory.query({
       resourceId: userId,
       threadId,
-      selectBy: {
-        last: false, // TODO: Add pagination
-      },
+      // TODO: Add pagination
     });
 
     return messages;
