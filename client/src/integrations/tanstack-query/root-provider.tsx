@@ -9,6 +9,9 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     dehydrate: { serializeData: superjson.serialize },
     hydrate: { deserializeData: superjson.deserialize },
+    queries: {
+      staleTime: 0,
+    },
   },
 });
 export const trpc = createTRPCOptionsProxy<AppRouter>({

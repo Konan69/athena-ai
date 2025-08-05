@@ -32,11 +32,12 @@ export const Route = createFileRoute("/_authenticated")({
         </div>
 
         {/* Shell above background */}
-        <div className="relative z-10 flex min-h-svh w-full ">
+        <div className="relative z-10 flex min-h-svh w-full">
           <SidebarApp variant="inset" collapsible="offcanvas" />
           {/* Content wrapper */}
-          <main className="relative flex-1 overflow-hidden ">
-            <div className=" sm:translate-y-3.5 min-h-[100svh] border-l sm:border sm:border-chat-border sm:rounded-tl-xl backdrop-blur-md pb-[140px] overflow-hidden transition-all">
+          <main className="relative flex-1 overflow-hidden">
+            {/* Fix subtle layout shift: avoid translate transforms that can snap on route/nav user interactions */}
+            <div className="min-h-[100svh] border-l sm:border sm:border-chat-border sm:rounded-tl-xl backdrop-blur-md pb-[140px] overflow-hidden transition-[background-color,border-color,box-shadow]">
               <SidebarInset className="bg-noise">
                 <Outlet />
               </SidebarInset>

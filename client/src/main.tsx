@@ -16,7 +16,6 @@ const router = createRouter({
   routeTree,
   context: undefined!,
   defaultPreload: "intent",
-  defaultPreloadStaleTime: 0,
 });
 
 function InnerApp() {

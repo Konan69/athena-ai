@@ -13,12 +13,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
 import { NavUser } from "@/components/nav-user";
 import { MessageCircle, SquarePen, BookOpen } from "lucide-react";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
@@ -132,46 +127,87 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
         </div>
         <div className="px-2 py-2">
           <motion.div
-            whileHover={{ scale: 1.03 }}
+            whileHover={{ scale: 1.035 }}
             whileTap={{ scale: 0.985 }}
-            transition={{ type: "spring", stiffness: 280, damping: 22 }}
+            transition={{
+              type: "spring",
+              stiffness: 340,
+              damping: 22,
+              mass: 0.7,
+            }}
           >
             <Button
               {...cursorGlowProps()}
-              onClick={handleNewChat}
-              className="group relative w-full justify-start overflow-hidden rounded-md border border-[oklch(0.72_0.25_300_/0.20)] bg-[oklch(0.72_0.25_300_/0.08)] text-foreground hover:bg-[oklch(0.72_0.25_300_/0.12)] transition-colors"
+              onClick={(e) => {
+                // press ripple origin
+                const target = e.currentTarget as HTMLButtonElement;
+                const rect = target.getBoundingClientRect();
+                const x = (e as React.MouseEvent).clientX - rect.left;
+                const y = (e as React.MouseEvent).clientY - rect.top;
+                target.style.setProperty("--rx", `${x}px`);
+                target.style.setProperty("--ry", `${y}px`);
+                // trigger ripple animation by toggling data attribute
+                target.setAttribute("data-rippling", "true");
+                // allow animation to run ~250ms, then reset
+                window.requestAnimationFrame(() => {
+                  setTimeout(() => {
+                    target.removeAttribute("data-rippling");
+                  }, 260);
+                });
+                handleNewChat();
+              }}
+              className="group relative w-full justify-start overflow-hidden rounded-md border border-[oklch(0.72_0.25_300_/0.20)] bg-[oklch(0.72_0.25_300_/0.07)] text-foreground transition-colors hover:bg-[oklch(0.72_0.25_300_/0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.72_0.25_300_/0.40)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               variant="outline"
+              style={{ "--rx": "50%", "--ry": "50%" } as React.CSSProperties}
             >
+              {/* minimal noise, very subtle */}
               <span
-                className="pointer-events-none absolute inset-0 opacity-25"
+                className="pointer-events-none absolute inset-0 opacity-10"
                 style={{
                   backgroundImage: "url(/noise.png)",
                   backgroundSize: "96px 96px",
                 }}
               />
-              {/* Ringed purple layered glow around button edges */}
+              {/* single crisp 1px inner stroke for definition */}
               <span
                 aria-hidden
-                className="pointer-events-none absolute -inset-0.5 rounded-lg opacity-60 transition-opacity duration-300"
+                className="pointer-events-none absolute inset-px rounded-[calc(theme(borderRadius.md)-2px)]"
                 style={{
-                  background:
-                    "radial-gradient(120% 180% at 50% 100%, transparent 45%, oklch(0.72 0.25 300 / 0.14) 58%, oklch(0.72 0.25 300 / 0.06) 75%, transparent 88%)",
-                  mask: "linear-gradient(#000, #000) content-box, linear-gradient(#000, #000)",
-                  WebkitMask:
-                    "linear-gradient(#000, #000) content-box, linear-gradient(#000, #000)",
-                  padding: "1px",
+                  boxShadow: "inset 0 0 0 1px oklch(0.72 0.25 300 / 0.22)",
                 }}
               />
+              {/* compact cursor-follow glow */}
               <span
                 data-glow="true"
                 className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
                 style={{
                   background:
-                    "radial-gradient(44px 44px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.16), transparent 60%)",
+                    "radial-gradient(40px 40px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.14), transparent 60%)",
                 }}
               />
-              <SquarePen className="relative mr-2 h-4 w-4 text-[oklch(0.72_0.25_300)] transition-transform duration-200 group-hover:scale-105" />
+              {/* soft press ripple (tiny, fades quickly, no flash) */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(30px 30px at var(--rx) var(--ry), oklch(0.72 0.25 300 / 0.18), transparent 65%)",
+                  opacity: 0,
+                  transition: "opacity 220ms ease, transform 220ms ease",
+                }}
+                data-ripple-overlay="true"
+              />
+              <SquarePen className="relative mr-2 h-4 w-4 text-[oklch(0.72_0.25_300)] transition-transform duration-150 group-active:scale-[0.98]" />
               <span className="relative">New chat</span>
+              {/* style injection via data attribute for ripple */}
+              <style>
+                {`
+                  button[data-rippling="true"] [data-ripple-overlay="true"]{
+                    opacity: 1;
+                    transform: scale(1.04);
+                  }
+                `}
+              </style>
             </Button>
           </motion.div>
         </div>
@@ -180,39 +216,28 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
             <motion.div
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.985 }}
-              transition={{ type: "spring", stiffness: 280, damping: 22 }}
+              transition={{ type: "spring", stiffness: 320, damping: 22 }}
             >
               <Button
-                onMouseMove={(e) => {
+                {...cursorGlowProps()}
+                onClick={(e) => {
+                  // press ripple origin for Library
                   const target = e.currentTarget as HTMLButtonElement;
                   const rect = target.getBoundingClientRect();
-                  const x = e.clientX - rect.left;
-                  const y = e.clientY - rect.top;
-                  target.style.setProperty("--mx", `${x}px`);
-                  target.style.setProperty("--my", `${y}px`);
-                  // smoothly reveal the glow
-                  const glow = target.querySelector(
-                    '[data-glow="true"]'
-                  ) as HTMLElement | null;
-                  if (glow) glow.style.opacity = "1";
+                  const x = (e as React.MouseEvent).clientX - rect.left;
+                  const y = (e as React.MouseEvent).clientY - rect.top;
+                  target.style.setProperty("--rx", `${x}px`);
+                  target.style.setProperty("--ry", `${y}px`);
+                  target.setAttribute("data-rippling", "true");
+                  window.requestAnimationFrame(() => {
+                    setTimeout(() => {
+                      target.removeAttribute("data-rippling");
+                    }, 260);
+                  });
                 }}
-                onMouseLeave={(e) => {
-                  const target = e.currentTarget as HTMLButtonElement;
-                  target.style.setProperty("--mx", "-200px");
-                  target.style.setProperty("--my", "-200px");
-                  const glow = target.querySelector(
-                    '[data-glow="true"]'
-                  ) as HTMLElement | null;
-                  if (glow) glow.style.opacity = "0";
-                }}
-                className="group relative w-full justify-start border border-[oklch(0.72_0.25_300_/0.22)] hover:bg-[oklch(0.72_0.25_300_/0.05)] transition-colors"
-                style={
-                  {
-                    "--mx": "-200px",
-                    "--my": "-200px",
-                  } as React.CSSProperties
-                }
+                className="group relative w-full justify-start border border-[oklch(0.72_0.25_300_/0.22)] hover:bg-[oklch(0.72_0.25_300_/0.05)] transition-[background-color,transform] duration-150"
                 variant="outline"
+                style={{ "--rx": "50%", "--ry": "50%" } as React.CSSProperties}
               >
                 <span
                   className="pointer-events-none absolute inset-0 opacity-20"
@@ -229,8 +254,30 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                       "radial-gradient(39px 39px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.12), transparent 60%)",
                   }}
                 />
-                <BookOpen className="relative mr-2 h-4 w-4 text-foreground/80 transition-colors duration-200 group-hover:text-foreground" />
-                <span className="relative">Library</span>
+                {/* soft press ripple */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background:
+                      "radial-gradient(28px 28px at var(--rx) var(--ry), oklch(0.72 0.25 300 / 0.16), transparent 65%)",
+                    opacity: 0,
+                    transition: "opacity 220ms ease, transform 220ms ease",
+                  }}
+                  data-ripple-overlay="true"
+                />
+                <BookOpen className="relative mr-2 h-4 w-4 text-foreground/80" />
+                <span className="relative transition-transform duration-150">
+                  Library
+                </span>
+                <style>
+                  {`
+                    button[data-rippling="true"] [data-ripple-overlay="true"]{
+                      opacity: 1;
+                      transform: scale(1.04);
+                    }
+                  `}
+                </style>
               </Button>
             </motion.div>
           </Link>
@@ -273,37 +320,38 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                                 params={{ threadId: chat.id }}
                               >
                                 <SidebarMenuButton
-                                  className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-colors"
+                                  {...cursorGlowProps()}
+                                  className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
                                   tooltip={humanizeDate(
                                     chat.updatedAt || chat.createdAt
                                   )}
-                                  onMouseMove={(e) => {
+                                  onClick={(e) => {
+                                    // immediate, simple click ripple — triggers on any click
                                     const target =
                                       e.currentTarget as HTMLButtonElement;
                                     const rect = target.getBoundingClientRect();
-                                    const x = e.clientX - rect.left;
-                                    const y = e.clientY - rect.top;
-                                    target.style.setProperty("--mx", `${x}px`);
-                                    target.style.setProperty("--my", `${y}px`);
-                                    const glow = target.querySelector(
-                                      '[data-glow="true"]'
-                                    ) as HTMLElement | null;
-                                    if (glow) glow.style.opacity = "1";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    const target =
-                                      e.currentTarget as HTMLButtonElement;
-                                    target.style.setProperty("--mx", "-200px");
-                                    target.style.setProperty("--my", "-200px");
-                                    const glow = target.querySelector(
-                                      '[data-glow="true"]'
-                                    ) as HTMLElement | null;
-                                    if (glow) glow.style.opacity = "0";
+                                    const x =
+                                      (e as React.MouseEvent).clientX -
+                                      rect.left;
+                                    const y =
+                                      (e as React.MouseEvent).clientY -
+                                      rect.top;
+                                    target.style.setProperty("--rx", `${x}px`);
+                                    target.style.setProperty("--ry", `${y}px`);
+                                    target.setAttribute(
+                                      "data-rippling",
+                                      "true"
+                                    );
+                                    setTimeout(
+                                      () =>
+                                        target.removeAttribute("data-rippling"),
+                                      200
+                                    );
                                   }}
                                   style={
                                     {
-                                      "--mx": "-200px",
-                                      "--my": "-200px",
+                                      "--rx": "50%",
+                                      "--ry": "50%",
                                     } as React.CSSProperties
                                   }
                                 >
@@ -315,8 +363,29 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                                         "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
                                     }}
                                   />
-                                  <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80 transition-transform group-hover:scale-105" />
-                                  <span className="relative truncate">
+                                  {/* simple click ripple */}
+                                  <span
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-0"
+                                    style={{
+                                      background:
+                                        "radial-gradient(22px 22px at var(--rx) var(--ry), oklch(0.72 0.25 300 / 0.14), transparent 65%)",
+                                      opacity: 0,
+                                      transition:
+                                        "opacity 160ms ease, transform 160ms ease",
+                                    }}
+                                    data-ripple-overlay="true"
+                                  />
+                                  <style>
+                                    {`
+                                      button[data-rippling="true"] [data-ripple-overlay="true"]{
+                                        opacity: 1;
+                                        transform: scale(1.03);
+                                      }
+                                    `}
+                                  </style>
+                                  <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80" />
+                                  <span className="relative truncate transition-transform duration-150">
                                     {chat.title || "Untitled chat"}
                                   </span>
                                 </SidebarMenuButton>
@@ -347,44 +416,16 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                               }}
                             >
                               <SidebarMenuButton
-                                className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-colors"
+                                {...cursorGlowProps("50%", "50%")}
+                                className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-colors will-change-transform"
                                 tooltip={humanizeDate(
                                   chat.updatedAt || chat.createdAt
                                 )}
-                                onMouseMove={(e) => {
-                                  const target =
-                                    e.currentTarget as HTMLButtonElement;
-                                  const rect = target.getBoundingClientRect();
-                                  const x = e.clientX - rect.left;
-                                  const y = e.clientY - rect.top;
-                                  target.style.setProperty("--mx", `${x}px`);
-                                  target.style.setProperty("--my", `${y}px`);
-                                  const glow = target.querySelector(
-                                    '[data-glow="true"]'
-                                  ) as HTMLElement | null;
-                                  if (glow) glow.style.opacity = "1";
-                                }}
-                                onMouseLeave={(e) => {
-                                  const target =
-                                    e.currentTarget as HTMLButtonElement;
-                                  target.style.setProperty("--mx", "-200px");
-                                  target.style.setProperty("--my", "-200px");
-                                  const glow = target.querySelector(
-                                    '[data-glow="true"]'
-                                  ) as HTMLElement | null;
-                                  if (glow) glow.style.opacity = "0";
-                                }}
                                 onClick={() =>
                                   navigate({
                                     to: "/chat/{-$threadId}",
                                     params: { threadId: chat.id },
                                   })
-                                }
-                                style={
-                                  {
-                                    "--mx": "50%",
-                                    "--my": "50%",
-                                  } as React.CSSProperties
                                 }
                               >
                                 <span
@@ -395,7 +436,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                                       "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
                                   }}
                                 />
-                                <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80 transition-transform duration-200 group-hover:scale-105" />
+                                <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80" />
                                 <span className="relative truncate">
                                   {chat.title || "Untitled chat"}
                                 </span>
@@ -426,44 +467,16 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                               }}
                             >
                               <SidebarMenuButton
-                                className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-colors"
+                                {...cursorGlowProps("50%", "50%")}
+                                className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
                                 tooltip={humanizeDate(
                                   chat.updatedAt || chat.createdAt
                                 )}
-                                onMouseMove={(e) => {
-                                  const target =
-                                    e.currentTarget as HTMLButtonElement;
-                                  const rect = target.getBoundingClientRect();
-                                  const x = e.clientX - rect.left;
-                                  const y = e.clientY - rect.top;
-                                  target.style.setProperty("--mx", `${x}px`);
-                                  target.style.setProperty("--my", `${y}px`);
-                                  const glow = target.querySelector(
-                                    '[data-glow="true"]'
-                                  ) as HTMLElement | null;
-                                  if (glow) glow.style.opacity = "1";
-                                }}
-                                onMouseLeave={(e) => {
-                                  const target =
-                                    e.currentTarget as HTMLButtonElement;
-                                  target.style.setProperty("--mx", "-200px");
-                                  target.style.setProperty("--my", "-200px");
-                                  const glow = target.querySelector(
-                                    '[data-glow="true"]'
-                                  ) as HTMLElement | null;
-                                  if (glow) glow.style.opacity = "0";
-                                }}
                                 onClick={() =>
                                   navigate({
                                     to: "/chat/{-$threadId}",
                                     params: { threadId: chat.id },
                                   })
-                                }
-                                style={
-                                  {
-                                    "--mx": "50%",
-                                    "--my": "50%",
-                                  } as React.CSSProperties
                                 }
                               >
                                 <span
@@ -474,7 +487,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                                       "radial-gradient(34px 34px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.12), transparent 60%)",
                                   }}
                                 />
-                                <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80 transition-transform duration-200 group-hover:scale-105" />
+                                <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80" />
                                 <span className="relative truncate">
                                   {chat.title || "Untitled chat"}
                                 </span>
@@ -505,44 +518,16 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                               }}
                             >
                               <SidebarMenuButton
-                                className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-colors"
+                                {...cursorGlowProps()}
+                                className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
                                 tooltip={humanizeDate(
                                   chat.updatedAt || chat.createdAt
                                 )}
-                                onMouseMove={(e) => {
-                                  const target =
-                                    e.currentTarget as HTMLButtonElement;
-                                  const rect = target.getBoundingClientRect();
-                                  const x = e.clientX - rect.left;
-                                  const y = e.clientY - rect.top;
-                                  target.style.setProperty("--mx", `${x}px`);
-                                  target.style.setProperty("--my", `${y}px`);
-                                  const glow = target.querySelector(
-                                    '[data-glow="true"]'
-                                  ) as HTMLElement | null;
-                                  if (glow) glow.style.opacity = "1";
-                                }}
-                                onMouseLeave={(e) => {
-                                  const target =
-                                    e.currentTarget as HTMLButtonElement;
-                                  target.style.setProperty("--mx", "-200px");
-                                  target.style.setProperty("--my", "-200px");
-                                  const glow = target.querySelector(
-                                    '[data-glow="true"]'
-                                  ) as HTMLElement | null;
-                                  if (glow) glow.style.opacity = "0";
-                                }}
                                 onClick={() =>
                                   navigate({
                                     to: "/chat/{-$threadId}",
                                     params: { threadId: chat.id },
                                   })
-                                }
-                                style={
-                                  {
-                                    "--mx": "-200px",
-                                    "--my": "-200px",
-                                  } as React.CSSProperties
                                 }
                               >
                                 <span
@@ -553,7 +538,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                                       "radial-gradient(28px 28px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
                                   }}
                                 />
-                                <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80 transition-transform duration-200 group-hover:scale-105" />
+                                <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80 transition-transform duration-200 group-hover:scale-110" />
                                 <span className="relative truncate">
                                   {chat.title || "Untitled chat"}
                                 </span>

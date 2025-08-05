@@ -17,12 +17,11 @@ import {
 import { useRouter } from "@tanstack/react-router";
 import { ChatMessageArea } from "@/components/ui/chat-message-area";
 import { useChat } from "@ai-sdk/react";
-import type { ComponentPropsWithoutRef } from "react";
 import { env } from "@/config/env";
 import { toast } from "sonner";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { trpc } from "@/integrations/tanstack-query/root-provider";
 import { TRPCClientError } from "@trpc/client";
 
@@ -37,7 +36,7 @@ export const Route = createFileRoute("/_authenticated/chat/{-$threadId}")({
     const qc = context.queryClient;
 
     try {
-      const data = await qc.fetchQuery(
+      const data = await qc.ensureQueryData(
         trpc.chat.getChatMessages.queryOptions({
           threadId: params.threadId,
         })
@@ -73,23 +72,35 @@ export const Route = createFileRoute("/_authenticated/chat/{-$threadId}")({
       throw error;
     }
   },
-  errorComponent: ({ error }) => (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h2 className="text-xl font-bold mb-4">Something went wrong</h2>
-      <p className="text-muted-foreground mb-4">{error.message}</p>
-      <div className="flex gap-2">
-        <button
-          // onClick={retry}
-          className="px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          Retry
-        </button>
-        <Link to="/" className="px-4 py-2 bg-gray-500 text-white rounded">
-          Back to Chat
-        </Link>
+  errorComponent: ({ error, reset }) => {
+    const router = useRouter();
+    const queryErrorResetBoundary = useQueryErrorResetBoundary();
+
+    useEffect(() => {
+      // Reset the query error boundary
+      queryErrorResetBoundary.reset();
+    }, [queryErrorResetBoundary]);
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <h2 className="text-xl font-bold mb-4">Something went wrong</h2>
+        <p className="text-muted-foreground mb-4">{error.message}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            Retry
+          </button>
+          <Link to="/" className="px-4 py-2 bg-gray-500 text-white rounded">
+            Back to Chat
+          </Link>
+        </div>
       </div>
-    </div>
-  ),
+    );
+  },
   notFoundComponent: () => (
     <div className="flex flex-col items-center justify-center h-screen">
       <h2 className="text-xl font-bold mb-4">Chat Not Found</h2>

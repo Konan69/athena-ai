@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import React, { useState } from "react";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,18 +23,44 @@ import {
   BookHeartIcon,
 } from "lucide-react";
 import InputModal from "@/components/input-modal";
+import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/library")({
   loader: async ({ context }) => {
     const trpc = context.trpc;
     const qc = context.queryClient;
-    const data = await qc.fetchQuery(
+    const data = await qc.ensureQueryData(
       trpc.library.getLibraryItems.queryOptions()
     );
     return { data };
   },
   pendingComponent: () => <div>Loading...</div>,
-  errorComponent: () => <div>Error</div>,
+  errorComponent: ({ error, reset }) => {
+    const router = useRouter();
+    const queryErrorResetBoundary = useQueryErrorResetBoundary();
+
+    useEffect(() => {
+      // Reset the query error boundary
+      queryErrorResetBoundary.reset();
+    }, [queryErrorResetBoundary]);
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <h2 className="text-xl font-bold mb-4">Something went wrong</h2>
+        <p className="text-muted-foreground mb-4">{error.message}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  },
   component: () => <LibraryPage />,
 });
 

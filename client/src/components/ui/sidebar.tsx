@@ -205,6 +205,7 @@ function Sidebar({
           "relative h-svh w-(--sidebar-width) transition-[width] duration-200 ease-linear z-0",
           // Subtle glass gap when inset to avoid harsh edge
           "group-data-[variant=inset]:bg-sidebar/70 group-data-[variant=inset]:backdrop-blur-sm",
+          // Keep a deterministic width even when offcanvas to avoid content shift on open/close ticks
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
