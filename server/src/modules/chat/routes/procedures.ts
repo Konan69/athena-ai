@@ -12,8 +12,8 @@ import { z } from "zod";
 
 export const chatProcedures = createTRPCRouter({
   createChat: protectedProcedure.mutation(async ({ ctx }) => {
-    const chatId = await chatService.createChat(ctx.user.id);
-    return chatId;
+    const chat = await chatService.createChat(ctx.user.id);
+    return chat;
   }),
   getChats: protectedProcedure.query(async ({ ctx }) => {
     const chats = await chatService.getChatsDrizzle(ctx.user.id);

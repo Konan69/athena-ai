@@ -36,8 +36,8 @@ export const Route = createFileRoute("/_authenticated")({
           <SidebarApp variant="inset" collapsible="offcanvas" />
           {/* Content wrapper */}
           <main className="relative flex-1 overflow-hidden ">
-            <div className=" sm:translate-y-3 min-h-[100svh] border-l sm:border sm:border-chat-border sm:rounded-tl-xl backdrop-blur-md pb-[140px] overflow-hidden transition-all">
-              <SidebarInset className="bg-transparent">
+            <div className=" sm:translate-y-3.5 min-h-[100svh] border-l sm:border sm:border-chat-border sm:rounded-tl-xl backdrop-blur-md pb-[140px] overflow-hidden transition-all">
+              <SidebarInset className="bg-noise">
                 <Outlet />
               </SidebarInset>
             </div>

@@ -131,11 +131,11 @@ export function Chat({ ...props }: { threadId: string | undefined }) {
     isError,
   } = useMutation(
     trpc.chat.createChat.mutationOptions({
-      onSuccess: (newThreadId) => {
-        const newUrl = `/chat/${newThreadId}`;
+      onSuccess: (newThread) => {
+        const newUrl = `/chat/${newThread.id}`;
         window.history.replaceState(null, "", newUrl);
 
-        setCurrentThreadId(newThreadId);
+        setCurrentThreadId(newThread.id);
         // Now trigger the chat submission with the new thread ID
         if (pendingMessageRef.current && chatSubmitRef.current) {
           // The useChat hook will now have the correct threadId

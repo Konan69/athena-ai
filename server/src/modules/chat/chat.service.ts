@@ -57,7 +57,15 @@ export class ChatService {
       resourceId: userId,
     });
 
-    return thread.id;
+    return {
+      id: thread.id,
+      title: thread.title,
+      metadata: thread.metadata,
+      createdAt: thread.createdAt,
+      updatedAt: thread.updatedAt,
+      createdAtZ: thread.createdAt.toISOString(),
+      updatedAtZ: thread.updatedAt?.toISOString(),
+    };
   }
 
   async getChats(userId: string) {

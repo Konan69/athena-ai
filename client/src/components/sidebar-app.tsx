@@ -117,23 +117,9 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
     trpc.chat.getChats.queryOptions()
   );
 
-  const preloadChat = (id: string) => {
-    router.preloadRoute({
-      to: "/chat/{-$threadId}",
-      params: { threadId: id },
-    });
-  };
-
-  const navigateToChat = (id: string) => {
-    navigate({
-      to: "/chat/{-$threadId}",
-      params: { threadId: id },
-    });
-  };
-
   return (
     <Sidebar className="border-r-0" {...props}>
-      <SidebarHeader className="relative before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:opacity-60 border-none">
+      <SidebarHeader className="relative before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:opacity-60 ">
         <div className="flex items-center justify-between p-2">
           <div className="flex items-center gap-3">
             <div className="hover-tilt flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.72_0.25_300)] text-white shadow-neon-purple">
@@ -250,7 +236,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
           </Link>
         </div>
       </SidebarHeader>
-      <SidebarContent className="relative before:pointer-events-none before:absolute before:inset-0 before:opacity-50">
+      <SidebarContent className="relative before:pointer-events-none before:absolute before:inset-0 before:opacity-50 ">
         <div className="flex flex-col gap-4">
           {isLoading && (
             <div className="px-2">
@@ -282,58 +268,59 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                                 ease: "easeOut",
                               }}
                             >
-                              <SidebarMenuButton
-                                className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-colors"
-                                tooltip={humanizeDate(
-                                  chat.updatedAt || chat.createdAt
-                                )}
-                                onMouseMove={(e) => {
-                                  const target =
-                                    e.currentTarget as HTMLButtonElement;
-                                  const rect = target.getBoundingClientRect();
-                                  const x = e.clientX - rect.left;
-                                  const y = e.clientY - rect.top;
-                                  target.style.setProperty("--mx", `${x}px`);
-                                  target.style.setProperty("--my", `${y}px`);
-                                  const glow = target.querySelector(
-                                    '[data-glow="true"]'
-                                  ) as HTMLElement | null;
-                                  if (glow) glow.style.opacity = "1";
-                                }}
-                                onMouseLeave={(e) => {
-                                  const target =
-                                    e.currentTarget as HTMLButtonElement;
-                                  target.style.setProperty("--mx", "-200px");
-                                  target.style.setProperty("--my", "-200px");
-                                  const glow = target.querySelector(
-                                    '[data-glow="true"]'
-                                  ) as HTMLElement | null;
-                                  if (glow) glow.style.opacity = "0";
-                                }}
-                                onMouseEnter={() => preloadChat(chat.id)}
-                                onClick={() => {
-                                  navigateToChat(chat.id);
-                                }}
-                                style={
-                                  {
-                                    "--mx": "-200px",
-                                    "--my": "-200px",
-                                  } as React.CSSProperties
-                                }
+                              <Link
+                                to={`/chat/{-$threadId}`}
+                                params={{ threadId: chat.id }}
                               >
-                                <span
-                                  data-glow="true"
-                                  className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
-                                  style={{
-                                    background:
-                                      "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
+                                <SidebarMenuButton
+                                  className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-colors"
+                                  tooltip={humanizeDate(
+                                    chat.updatedAt || chat.createdAt
+                                  )}
+                                  onMouseMove={(e) => {
+                                    const target =
+                                      e.currentTarget as HTMLButtonElement;
+                                    const rect = target.getBoundingClientRect();
+                                    const x = e.clientX - rect.left;
+                                    const y = e.clientY - rect.top;
+                                    target.style.setProperty("--mx", `${x}px`);
+                                    target.style.setProperty("--my", `${y}px`);
+                                    const glow = target.querySelector(
+                                      '[data-glow="true"]'
+                                    ) as HTMLElement | null;
+                                    if (glow) glow.style.opacity = "1";
                                   }}
-                                />
-                                <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80 transition-transform group-hover:scale-105" />
-                                <span className="relative truncate">
-                                  {chat.title || "Untitled chat"}
-                                </span>
-                              </SidebarMenuButton>
+                                  onMouseLeave={(e) => {
+                                    const target =
+                                      e.currentTarget as HTMLButtonElement;
+                                    target.style.setProperty("--mx", "-200px");
+                                    target.style.setProperty("--my", "-200px");
+                                    const glow = target.querySelector(
+                                      '[data-glow="true"]'
+                                    ) as HTMLElement | null;
+                                    if (glow) glow.style.opacity = "0";
+                                  }}
+                                  style={
+                                    {
+                                      "--mx": "-200px",
+                                      "--my": "-200px",
+                                    } as React.CSSProperties
+                                  }
+                                >
+                                  <span
+                                    data-glow="true"
+                                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
+                                    style={{
+                                      background:
+                                        "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
+                                    }}
+                                  />
+                                  <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80 transition-transform group-hover:scale-105" />
+                                  <span className="relative truncate">
+                                    {chat.title || "Untitled chat"}
+                                  </span>
+                                </SidebarMenuButton>
+                              </Link>
                             </motion.div>
                           </SidebarMenuItem>
                         ))}
