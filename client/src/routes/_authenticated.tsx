@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_authenticated")({
           {/* Content wrapper */}
           <main className="relative flex-1 overflow-hidden">
             {/* Fix subtle layout shift: avoid translate transforms that can snap on route/nav user interactions */}
-            <div className="min-h-[100svh] border-l sm:border sm:border-chat-border sm:rounded-tl-xl backdrop-blur-md pb-[140px] overflow-hidden transition-[background-color,border-color,box-shadow]">
+            <div className="sm:translate-y-4 min-h-[100svh] border-l sm:border sm:border-chat-border sm:rounded-tl-xl backdrop-blur-md pb-[140px] overflow-hidden transition-[background-color,border-color,box-shadow]">
               <SidebarInset className="bg-noise">
                 <Outlet />
               </SidebarInset>

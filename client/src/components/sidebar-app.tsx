@@ -16,21 +16,20 @@ import {
 
 import { NavUser } from "@/components/nav-user";
 import { MessageCircle, SquarePen, BookOpen } from "lucide-react";
-import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { cursorGlowProps } from "@/lib/utils";
 import {
   formatDistanceToNow,
   isAfter,
-  subDays,
   subWeeks,
   subMonths,
   parseISO,
 } from "date-fns";
 import { trpc } from "@/integrations/tanstack-query/root-provider";
-import { toast } from "sonner";
+import { SidebarChatListSkeleton } from "@/components/skeletons/sidebar-chat-list-skeleton";
 
 type ChatItem = {
   id: string;
@@ -49,6 +48,10 @@ type Grouped = {
   lastMonth: ChatItem[];
   previous: ChatItem[];
 };
+
+function truncateTitle(title: string) {
+  return title.replace(/^"+|"+$/g, "").trim();
+}
 
 function groupChats(items: ChatItem[]): Grouped {
   const now = new Date();
@@ -139,21 +142,6 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
             <Button
               {...cursorGlowProps()}
               onClick={(e) => {
-                // press ripple origin
-                const target = e.currentTarget as HTMLButtonElement;
-                const rect = target.getBoundingClientRect();
-                const x = (e as React.MouseEvent).clientX - rect.left;
-                const y = (e as React.MouseEvent).clientY - rect.top;
-                target.style.setProperty("--rx", `${x}px`);
-                target.style.setProperty("--ry", `${y}px`);
-                // trigger ripple animation by toggling data attribute
-                target.setAttribute("data-rippling", "true");
-                // allow animation to run ~250ms, then reset
-                window.requestAnimationFrame(() => {
-                  setTimeout(() => {
-                    target.removeAttribute("data-rippling");
-                  }, 260);
-                });
                 handleNewChat();
               }}
               className="group relative w-full justify-start overflow-hidden rounded-md border border-[oklch(0.72_0.25_300_/0.20)] bg-[oklch(0.72_0.25_300_/0.07)] text-foreground transition-colors hover:bg-[oklch(0.72_0.25_300_/0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.72_0.25_300_/0.40)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -185,29 +173,8 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                     "radial-gradient(40px 40px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.14), transparent 60%)",
                 }}
               />
-              {/* soft press ripple (tiny, fades quickly, no flash) */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background:
-                    "radial-gradient(30px 30px at var(--rx) var(--ry), oklch(0.72 0.25 300 / 0.18), transparent 65%)",
-                  opacity: 0,
-                  transition: "opacity 220ms ease, transform 220ms ease",
-                }}
-                data-ripple-overlay="true"
-              />
               <SquarePen className="relative mr-2 h-4 w-4 text-[oklch(0.72_0.25_300)] transition-transform duration-150 group-active:scale-[0.98]" />
               <span className="relative">New chat</span>
-              {/* style injection via data attribute for ripple */}
-              <style>
-                {`
-                  button[data-rippling="true"] [data-ripple-overlay="true"]{
-                    opacity: 1;
-                    transform: scale(1.04);
-                  }
-                `}
-              </style>
             </Button>
           </motion.div>
         </div>
@@ -220,32 +187,10 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
             >
               <Button
                 {...cursorGlowProps()}
-                onClick={(e) => {
-                  // press ripple origin for Library
-                  const target = e.currentTarget as HTMLButtonElement;
-                  const rect = target.getBoundingClientRect();
-                  const x = (e as React.MouseEvent).clientX - rect.left;
-                  const y = (e as React.MouseEvent).clientY - rect.top;
-                  target.style.setProperty("--rx", `${x}px`);
-                  target.style.setProperty("--ry", `${y}px`);
-                  target.setAttribute("data-rippling", "true");
-                  window.requestAnimationFrame(() => {
-                    setTimeout(() => {
-                      target.removeAttribute("data-rippling");
-                    }, 260);
-                  });
-                }}
                 className="group relative w-full justify-start border border-[oklch(0.72_0.25_300_/0.22)] hover:bg-[oklch(0.72_0.25_300_/0.05)] transition-[background-color,transform] duration-150"
                 variant="outline"
                 style={{ "--rx": "50%", "--ry": "50%" } as React.CSSProperties}
               >
-                <span
-                  className="pointer-events-none absolute inset-0 opacity-20"
-                  style={{
-                    backgroundImage: "url(/noise.png)",
-                    backgroundSize: "96px 96px",
-                  }}
-                />
                 <span
                   data-glow="true"
                   className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
@@ -254,30 +199,10 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                       "radial-gradient(39px 39px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.12), transparent 60%)",
                   }}
                 />
-                {/* soft press ripple */}
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    background:
-                      "radial-gradient(28px 28px at var(--rx) var(--ry), oklch(0.72 0.25 300 / 0.16), transparent 65%)",
-                    opacity: 0,
-                    transition: "opacity 220ms ease, transform 220ms ease",
-                  }}
-                  data-ripple-overlay="true"
-                />
                 <BookOpen className="relative mr-2 h-4 w-4 text-foreground/80" />
                 <span className="relative transition-transform duration-150">
                   Library
                 </span>
-                <style>
-                  {`
-                    button[data-rippling="true"] [data-ripple-overlay="true"]{
-                      opacity: 1;
-                      transform: scale(1.04);
-                    }
-                  `}
-                </style>
               </Button>
             </motion.div>
           </Link>
@@ -285,11 +210,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent className="relative before:pointer-events-none before:absolute before:inset-0 before:opacity-50 ">
         <div className="flex flex-col gap-4">
-          {isLoading && (
-            <div className="px-2">
-              <div className="h-8 w-full animate-pulse rounded-md bg-muted/40" />
-            </div>
-          )}
+          {isLoading && <SidebarChatListSkeleton />}
           {error && <RetryError onRetry={refetch} />}
           {data &&
             Array.isArray(data) &&
@@ -325,35 +246,6 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                                   tooltip={humanizeDate(
                                     chat.updatedAt || chat.createdAt
                                   )}
-                                  onClick={(e) => {
-                                    // immediate, simple click ripple — triggers on any click
-                                    const target =
-                                      e.currentTarget as HTMLButtonElement;
-                                    const rect = target.getBoundingClientRect();
-                                    const x =
-                                      (e as React.MouseEvent).clientX -
-                                      rect.left;
-                                    const y =
-                                      (e as React.MouseEvent).clientY -
-                                      rect.top;
-                                    target.style.setProperty("--rx", `${x}px`);
-                                    target.style.setProperty("--ry", `${y}px`);
-                                    target.setAttribute(
-                                      "data-rippling",
-                                      "true"
-                                    );
-                                    setTimeout(
-                                      () =>
-                                        target.removeAttribute("data-rippling"),
-                                      200
-                                    );
-                                  }}
-                                  style={
-                                    {
-                                      "--rx": "50%",
-                                      "--ry": "50%",
-                                    } as React.CSSProperties
-                                  }
                                 >
                                   <span
                                     data-glow="true"
@@ -363,30 +255,10 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                                         "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
                                     }}
                                   />
-                                  {/* simple click ripple */}
-                                  <span
-                                    aria-hidden
-                                    className="pointer-events-none absolute inset-0"
-                                    style={{
-                                      background:
-                                        "radial-gradient(22px 22px at var(--rx) var(--ry), oklch(0.72 0.25 300 / 0.14), transparent 65%)",
-                                      opacity: 0,
-                                      transition:
-                                        "opacity 160ms ease, transform 160ms ease",
-                                    }}
-                                    data-ripple-overlay="true"
-                                  />
-                                  <style>
-                                    {`
-                                      button[data-rippling="true"] [data-ripple-overlay="true"]{
-                                        opacity: 1;
-                                        transform: scale(1.03);
-                                      }
-                                    `}
-                                  </style>
-                                  <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80" />
                                   <span className="relative truncate transition-transform duration-150">
-                                    {chat.title || "Untitled chat"}
+                                    {truncateTitle(
+                                      chat.title || "Untitled chat"
+                                    )}
                                   </span>
                                 </SidebarMenuButton>
                               </Link>
@@ -397,158 +269,167 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                     </SidebarMenu>
                   </SidebarGroup>
 
-                  <SidebarGroup>
-                    <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
-                      Previous 7 Days
-                    </SidebarGroupLabel>
-                    <SidebarMenu>
-                      <AnimatePresence initial={false}>
-                        {groups.lastWeek.map((chat, i) => (
-                          <SidebarMenuItem key={chat.id}>
-                            <motion.div
-                              initial={{ opacity: 0, y: 6 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -6 }}
-                              transition={{
-                                delay: i * 0.02,
-                                duration: 0.18,
-                                ease: "easeOut",
-                              }}
-                            >
-                              <SidebarMenuButton
-                                {...cursorGlowProps("50%", "50%")}
-                                className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-colors will-change-transform"
-                                tooltip={humanizeDate(
-                                  chat.updatedAt || chat.createdAt
-                                )}
-                                onClick={() =>
-                                  navigate({
-                                    to: "/chat/{-$threadId}",
-                                    params: { threadId: chat.id },
-                                  })
-                                }
+                  {!!groups.lastWeek.length && (
+                    <SidebarGroup>
+                      <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
+                        Previous 7 Days
+                      </SidebarGroupLabel>
+                      <SidebarMenu>
+                        <AnimatePresence initial={false}>
+                          {groups.lastWeek.map((chat, i) => (
+                            <SidebarMenuItem key={chat.id}>
+                              <motion.div
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -6 }}
+                                transition={{
+                                  delay: i * 0.02,
+                                  duration: 0.18,
+                                  ease: "easeOut",
+                                }}
                               >
-                                <span
-                                  data-glow="true"
-                                  className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
-                                  style={{
-                                    background:
-                                      "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
-                                  }}
-                                />
-                                <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80" />
-                                <span className="relative truncate">
-                                  {chat.title || "Untitled chat"}
-                                </span>
-                              </SidebarMenuButton>
-                            </motion.div>
-                          </SidebarMenuItem>
-                        ))}
-                      </AnimatePresence>
-                    </SidebarMenu>
-                  </SidebarGroup>
+                                <SidebarMenuButton
+                                  {...cursorGlowProps("50%", "50%")}
+                                  className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-colors will-change-transform"
+                                  tooltip={humanizeDate(
+                                    chat.updatedAt || chat.createdAt
+                                  )}
+                                  onClick={() =>
+                                    navigate({
+                                      to: "/chat/{-$threadId}",
+                                      params: { threadId: chat.id },
+                                    })
+                                  }
+                                >
+                                  <span
+                                    data-glow="true"
+                                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
+                                    style={{
+                                      background:
+                                        "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
+                                    }}
+                                  />
+                                  <span className="relative truncate">
+                                    {truncateTitle(
+                                      chat.title || "Untitled chat"
+                                    )}
+                                  </span>
+                                </SidebarMenuButton>
+                              </motion.div>
+                            </SidebarMenuItem>
+                          ))}
+                        </AnimatePresence>
+                      </SidebarMenu>
+                    </SidebarGroup>
+                  )}
 
-                  <SidebarGroup>
-                    <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
-                      Previous 30 Days
-                    </SidebarGroupLabel>
-                    <SidebarMenu>
-                      <AnimatePresence initial={false}>
-                        {groups.lastMonth.map((chat, i) => (
-                          <SidebarMenuItem key={chat.id}>
-                            <motion.div
-                              initial={{ opacity: 0, y: 6 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -6 }}
-                              transition={{
-                                delay: i * 0.02,
-                                duration: 0.18,
-                                ease: "easeOut",
-                              }}
-                            >
-                              <SidebarMenuButton
-                                {...cursorGlowProps("50%", "50%")}
-                                className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
-                                tooltip={humanizeDate(
-                                  chat.updatedAt || chat.createdAt
-                                )}
-                                onClick={() =>
-                                  navigate({
-                                    to: "/chat/{-$threadId}",
-                                    params: { threadId: chat.id },
-                                  })
-                                }
+                  {!!groups.lastMonth.length && (
+                    <SidebarGroup>
+                      <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
+                        Previous 30 Days
+                      </SidebarGroupLabel>
+                      <SidebarMenu>
+                        <AnimatePresence initial={false}>
+                          {groups.lastMonth.map((chat, i) => (
+                            <SidebarMenuItem key={chat.id}>
+                              <motion.div
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -6 }}
+                                transition={{
+                                  delay: i * 0.02,
+                                  duration: 0.18,
+                                  ease: "easeOut",
+                                }}
                               >
-                                <span
-                                  data-glow="true"
-                                  className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
-                                  style={{
-                                    background:
-                                      "radial-gradient(34px 34px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.12), transparent 60%)",
-                                  }}
-                                />
-                                <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80" />
-                                <span className="relative truncate">
-                                  {chat.title || "Untitled chat"}
-                                </span>
-                              </SidebarMenuButton>
-                            </motion.div>
-                          </SidebarMenuItem>
-                        ))}
-                      </AnimatePresence>
-                    </SidebarMenu>
-                  </SidebarGroup>
+                                <SidebarMenuButton
+                                  {...cursorGlowProps("50%", "50%")}
+                                  className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
+                                  tooltip={humanizeDate(
+                                    chat.updatedAt || chat.createdAt
+                                  )}
+                                  onClick={() =>
+                                    navigate({
+                                      to: "/chat/{-$threadId}",
+                                      params: { threadId: chat.id },
+                                    })
+                                  }
+                                >
+                                  <span
+                                    data-glow="true"
+                                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
+                                    style={{
+                                      background:
+                                        "radial-gradient(34px 34px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.12), transparent 60%)",
+                                    }}
+                                  />
+                                  <span className="relative truncate">
+                                    {truncateTitle(
+                                      chat.title || "Untitled chat"
+                                    )}
+                                  </span>
+                                </SidebarMenuButton>
+                              </motion.div>
+                            </SidebarMenuItem>
+                          ))}
+                        </AnimatePresence>
+                      </SidebarMenu>
+                    </SidebarGroup>
+                  )}
 
-                  <SidebarGroup>
-                    <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
-                      Previous
-                    </SidebarGroupLabel>
-                    <SidebarMenu>
-                      <AnimatePresence initial={false}>
-                        {groups.previous.map((chat, i) => (
-                          <SidebarMenuItem key={chat.id}>
-                            <motion.div
-                              initial={{ opacity: 0, y: 6 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -6 }}
-                              transition={{
-                                delay: i * 0.02,
-                                duration: 0.18,
-                                ease: "easeOut",
-                              }}
-                            >
-                              <SidebarMenuButton
-                                {...cursorGlowProps()}
-                                className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
-                                tooltip={humanizeDate(
-                                  chat.updatedAt || chat.createdAt
-                                )}
-                                onClick={() =>
-                                  navigate({
-                                    to: "/chat/{-$threadId}",
-                                    params: { threadId: chat.id },
-                                  })
-                                }
+                  {!!groups.previous.length && (
+                    <SidebarGroup>
+                      <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
+                        Previous
+                      </SidebarGroupLabel>
+                      <SidebarMenu>
+                        <AnimatePresence initial={false}>
+                          {groups.previous.map((chat, i) => (
+                            <SidebarMenuItem key={chat.id}>
+                              <motion.div
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -6 }}
+                                transition={{
+                                  delay: i * 0.02,
+                                  duration: 0.18,
+                                  ease: "easeOut",
+                                }}
                               >
-                                <span
-                                  data-glow="true"
-                                  className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
-                                  style={{
-                                    background:
-                                      "radial-gradient(28px 28px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
-                                  }}
-                                />
-                                <MessageCircle className="relative mr-2 h-4 w-4 text-foreground/80 transition-transform duration-200 group-hover:scale-110" />
-                                <span className="relative truncate">
-                                  {chat.title || "Untitled chat"}
-                                </span>
-                              </SidebarMenuButton>
-                            </motion.div>
-                          </SidebarMenuItem>
-                        ))}
-                      </AnimatePresence>
-                    </SidebarMenu>
-                  </SidebarGroup>
+                                <SidebarMenuButton
+                                  {...cursorGlowProps()}
+                                  className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
+                                  tooltip={humanizeDate(
+                                    chat.updatedAt || chat.createdAt
+                                  )}
+                                  onClick={() =>
+                                    navigate({
+                                      to: "/chat/{-$threadId}",
+                                      params: { threadId: chat.id },
+                                    })
+                                  }
+                                >
+                                  <span
+                                    data-glow="true"
+                                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
+                                    style={{
+                                      background:
+                                        "radial-gradient(28px 28px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
+                                    }}
+                                  />
+                                  <span className="relative truncate">
+                                    {truncateTitle(
+                                      chat.title || "Untitled chat"
+                                    )}
+                                  </span>
+                                </SidebarMenuButton>
+                              </motion.div>
+                            </SidebarMenuItem>
+                          ))}
+                        </AnimatePresence>
+                      </SidebarMenu>
+                    </SidebarGroup>
+                  )}
                 </>
               );
             })()}
