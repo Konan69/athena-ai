@@ -10,8 +10,6 @@ export class ChatService {
   async processChat(request: ChatRequest) {
     const { message, threadId, resourceId } = request;
 
-    console.log(request);
-
     // Handle cases where message might be null (e.g., initial load or error)
     if (!message || !message.content) {
       throw new HTTPException(400, { message: "Missing message content" });

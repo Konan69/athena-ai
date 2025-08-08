@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { NavUser } from "@/components/nav-user";
-import { MessageCircle, SquarePen, BookOpen } from "lucide-react";
+import { MessageCircle, SquarePen, BookOpen, QrCode } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -28,8 +28,9 @@ import {
   subMonths,
   parseISO,
 } from "date-fns";
-import { trpc } from "@/integrations/tanstack-query/root-provider";
+import { queryClient, trpc } from "@/integrations/tanstack-query/root-provider";
 import { SidebarChatListSkeleton } from "@/components/skeletons/sidebar-chat-list-skeleton";
+import { useChatStore } from "@/store/chat.store";
 
 type ChatItem = {
   id: string;
@@ -89,6 +90,57 @@ function humanizeDate(iso: string) {
   }
 }
 
+type ChatListItemProps = {
+  chat: ChatItem;
+  index: number;
+};
+
+const ChatListItem = ({ chat, index }: ChatListItemProps) => {
+  return (
+    <SidebarMenuItem>
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{
+          delay: index * 0.02,
+          duration: 0.18,
+          ease: "easeOut",
+        }}
+      >
+        <Link
+          to="/chat/{-$threadId}"
+          params={{ threadId: chat.id }}
+          preload="intent"
+        >
+          <SidebarMenuButton
+            {...cursorGlowProps()}
+            onMouseEnter={() =>
+              queryClient.prefetchQuery(
+                trpc.chat.getChatMessages.queryOptions({ threadId: chat.id })
+              )
+            }
+            className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
+            tooltip={humanizeDate(chat.updatedAt || chat.createdAt)}
+          >
+            <span
+              data-glow="true"
+              className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
+              style={{
+                background:
+                  "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
+              }}
+            />
+            <span className="relative truncate transition-transform duration-150">
+              {truncateTitle(chat.title || "Untitled chat")}
+            </span>
+          </SidebarMenuButton>
+        </Link>
+      </motion.div>
+    </SidebarMenuItem>
+  );
+};
+
 function RetryError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-8">
@@ -103,17 +155,34 @@ function RetryError({ onRetry }: { onRetry: () => void }) {
 export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
   const router = useRouter();
   const navigate = router.navigate;
+  const resetChatState = useChatStore((state) => state.resetChatState);
+  const bumpNewNonce = useChatStore((s) => s.bumpNewNonce);
+
   const handleNewChat = () => {
-    // Navigate to root and reset any chat state
+    resetChatState(); // Reset chat state before navigating
+    bumpNewNonce(); // Force distinct route identity for /new
     navigate({
-      to: "/",
-      replace: true, // This will replace current history entry
+      to: "/chat/{-$threadId}",
+      params: { threadId: undefined },
+      replace: true,
     });
   };
 
-  const { data, isLoading, error, refetch } = useQuery(
-    trpc.chat.getChats.queryOptions()
-  );
+  const baseGetChats = trpc.chat.getChats.queryOptions();
+  const { data, isLoading, error, refetch } = useQuery({
+    ...baseGetChats,
+    // Keep showing current list during refetches to prevent loading flicker
+    placeholderData: (prev) => prev,
+  });
+
+  const groups = data
+    ? groupChats(data)
+    : {
+        recent: [],
+        lastWeek: [],
+        lastMonth: [],
+        previous: [],
+      };
 
   return (
     <Sidebar className="border-r-0" {...props}>
@@ -207,232 +276,103 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
             </motion.div>
           </Link>
         </div>
+        <div className="px-2 pb-2 relative">
+          <Link to="/">
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.985 }}
+              transition={{ type: "spring", stiffness: 320, damping: 22 }}
+            >
+              <Button
+                {...cursorGlowProps()}
+                className="group relative w-full justify-start border border-[oklch(0.72_0.25_300_/0.22)] hover:bg-[oklch(0.72_0.25_300_/0.05)] transition-[background-color,transform] duration-150"
+                variant="outline"
+                style={{ "--rx": "50%", "--ry": "50%" } as React.CSSProperties}
+              >
+                <span
+                  data-glow="true"
+                  className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
+                  style={{
+                    background:
+                      "radial-gradient(39px 39px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.12), transparent 60%)",
+                  }}
+                />
+                <BookOpen className="relative mr-2 h-4 w-4 text-foreground/80" />
+                <span className="relative transition-transform duration-150">
+                  APPS
+                </span>
+              </Button>
+            </motion.div>
+          </Link>
+        </div>
       </SidebarHeader>
       <SidebarContent className="relative before:pointer-events-none before:absolute before:inset-0 before:opacity-50 ">
         <div className="flex flex-col gap-4">
-          {isLoading && <SidebarChatListSkeleton />}
-          {error && <RetryError onRetry={refetch} />}
-          {data &&
-            Array.isArray(data) &&
-            (() => {
-              const groups = groupChats(data as ChatItem[]);
-              return (
-                <>
-                  <SidebarGroup>
-                    <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
-                      Recent
-                    </SidebarGroupLabel>
-                    <SidebarMenu>
-                      <AnimatePresence initial={false}>
-                        {groups.recent.map((chat, i) => (
-                          <SidebarMenuItem key={chat.id}>
-                            <motion.div
-                              initial={{ opacity: 0, y: 6 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -6 }}
-                              transition={{
-                                delay: i * 0.02,
-                                duration: 0.18,
-                                ease: "easeOut",
-                              }}
-                            >
-                              <Link
-                                to={`/chat/{-$threadId}`}
-                                params={{ threadId: chat.id }}
-                              >
-                                <SidebarMenuButton
-                                  {...cursorGlowProps()}
-                                  className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
-                                  tooltip={humanizeDate(
-                                    chat.updatedAt || chat.createdAt
-                                  )}
-                                >
-                                  <span
-                                    data-glow="true"
-                                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
-                                    style={{
-                                      background:
-                                        "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
-                                    }}
-                                  />
-                                  <span className="relative truncate transition-transform duration-150">
-                                    {truncateTitle(
-                                      chat.title || "Untitled chat"
-                                    )}
-                                  </span>
-                                </SidebarMenuButton>
-                              </Link>
-                            </motion.div>
-                          </SidebarMenuItem>
-                        ))}
-                      </AnimatePresence>
-                    </SidebarMenu>
-                  </SidebarGroup>
+          {isLoading ? (
+            <SidebarChatListSkeleton />
+          ) : error ? (
+            <RetryError onRetry={refetch} />
+          ) : data ? (
+            <>
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
+                  Recent
+                </SidebarGroupLabel>
+                <SidebarMenu>
+                  <AnimatePresence initial={false}>
+                    {groups.recent.map((chat, i) => (
+                      <ChatListItem chat={chat} index={i} key={chat.id} />
+                    ))}
+                  </AnimatePresence>
+                </SidebarMenu>
+              </SidebarGroup>
 
-                  {!!groups.lastWeek.length && (
-                    <SidebarGroup>
-                      <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
-                        Previous 7 Days
-                      </SidebarGroupLabel>
-                      <SidebarMenu>
-                        <AnimatePresence initial={false}>
-                          {groups.lastWeek.map((chat, i) => (
-                            <SidebarMenuItem key={chat.id}>
-                              <motion.div
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -6 }}
-                                transition={{
-                                  delay: i * 0.02,
-                                  duration: 0.18,
-                                  ease: "easeOut",
-                                }}
-                              >
-                                <SidebarMenuButton
-                                  {...cursorGlowProps("50%", "50%")}
-                                  className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-colors will-change-transform"
-                                  tooltip={humanizeDate(
-                                    chat.updatedAt || chat.createdAt
-                                  )}
-                                  onClick={() =>
-                                    navigate({
-                                      to: "/chat/{-$threadId}",
-                                      params: { threadId: chat.id },
-                                    })
-                                  }
-                                >
-                                  <span
-                                    data-glow="true"
-                                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
-                                    style={{
-                                      background:
-                                        "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
-                                    }}
-                                  />
-                                  <span className="relative truncate">
-                                    {truncateTitle(
-                                      chat.title || "Untitled chat"
-                                    )}
-                                  </span>
-                                </SidebarMenuButton>
-                              </motion.div>
-                            </SidebarMenuItem>
-                          ))}
-                        </AnimatePresence>
-                      </SidebarMenu>
-                    </SidebarGroup>
-                  )}
+              {!!groups.lastWeek.length && (
+                <SidebarGroup>
+                  <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
+                    Previous 7 Days
+                  </SidebarGroupLabel>
+                  <SidebarMenu>
+                    <AnimatePresence initial={false}>
+                      {groups.lastWeek.map((chat, i) => (
+                        <ChatListItem chat={chat} index={i} key={chat.id} />
+                      ))}
+                    </AnimatePresence>
+                  </SidebarMenu>
+                </SidebarGroup>
+              )}
 
-                  {!!groups.lastMonth.length && (
-                    <SidebarGroup>
-                      <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
-                        Previous 30 Days
-                      </SidebarGroupLabel>
-                      <SidebarMenu>
-                        <AnimatePresence initial={false}>
-                          {groups.lastMonth.map((chat, i) => (
-                            <SidebarMenuItem key={chat.id}>
-                              <motion.div
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -6 }}
-                                transition={{
-                                  delay: i * 0.02,
-                                  duration: 0.18,
-                                  ease: "easeOut",
-                                }}
-                              >
-                                <SidebarMenuButton
-                                  {...cursorGlowProps("50%", "50%")}
-                                  className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
-                                  tooltip={humanizeDate(
-                                    chat.updatedAt || chat.createdAt
-                                  )}
-                                  onClick={() =>
-                                    navigate({
-                                      to: "/chat/{-$threadId}",
-                                      params: { threadId: chat.id },
-                                    })
-                                  }
-                                >
-                                  <span
-                                    data-glow="true"
-                                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
-                                    style={{
-                                      background:
-                                        "radial-gradient(34px 34px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.12), transparent 60%)",
-                                    }}
-                                  />
-                                  <span className="relative truncate">
-                                    {truncateTitle(
-                                      chat.title || "Untitled chat"
-                                    )}
-                                  </span>
-                                </SidebarMenuButton>
-                              </motion.div>
-                            </SidebarMenuItem>
-                          ))}
-                        </AnimatePresence>
-                      </SidebarMenu>
-                    </SidebarGroup>
-                  )}
+              {!!groups.lastMonth.length && (
+                <SidebarGroup>
+                  <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
+                    Previous 30 Days
+                  </SidebarGroupLabel>
+                  <SidebarMenu>
+                    <AnimatePresence initial={false}>
+                      {groups.lastMonth.map((chat, i) => (
+                        <ChatListItem chat={chat} index={i} key={chat.id} />
+                      ))}
+                    </AnimatePresence>
+                  </SidebarMenu>
+                </SidebarGroup>
+              )}
 
-                  {!!groups.previous.length && (
-                    <SidebarGroup>
-                      <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
-                        Previous
-                      </SidebarGroupLabel>
-                      <SidebarMenu>
-                        <AnimatePresence initial={false}>
-                          {groups.previous.map((chat, i) => (
-                            <SidebarMenuItem key={chat.id}>
-                              <motion.div
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -6 }}
-                                transition={{
-                                  delay: i * 0.02,
-                                  duration: 0.18,
-                                  ease: "easeOut",
-                                }}
-                              >
-                                <SidebarMenuButton
-                                  {...cursorGlowProps()}
-                                  className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
-                                  tooltip={humanizeDate(
-                                    chat.updatedAt || chat.createdAt
-                                  )}
-                                  onClick={() =>
-                                    navigate({
-                                      to: "/chat/{-$threadId}",
-                                      params: { threadId: chat.id },
-                                    })
-                                  }
-                                >
-                                  <span
-                                    data-glow="true"
-                                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150"
-                                    style={{
-                                      background:
-                                        "radial-gradient(28px 28px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
-                                    }}
-                                  />
-                                  <span className="relative truncate">
-                                    {truncateTitle(
-                                      chat.title || "Untitled chat"
-                                    )}
-                                  </span>
-                                </SidebarMenuButton>
-                              </motion.div>
-                            </SidebarMenuItem>
-                          ))}
-                        </AnimatePresence>
-                      </SidebarMenu>
-                    </SidebarGroup>
-                  )}
-                </>
-              );
-            })()}
+              {!!groups.previous.length && (
+                <SidebarGroup>
+                  <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
+                    Previous
+                  </SidebarGroupLabel>
+                  <SidebarMenu>
+                    <AnimatePresence initial={false}>
+                      {groups.previous.map((chat, i) => (
+                        <ChatListItem chat={chat} index={i} key={chat.id} />
+                      ))}
+                    </AnimatePresence>
+                  </SidebarMenu>
+                </SidebarGroup>
+              )}
+            </>
+          ) : null}
         </div>
       </SidebarContent>
       <SidebarRail />
