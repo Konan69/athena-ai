@@ -1,30 +1,35 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ChatInput,
-  ChatInputSubmit,
-  ChatInputTextArea,
-} from "@/components/ui/chat-input";
-import {
-  ChatMessage,
-  ChatMessageAvatar,
-  ChatMessageContent,
-} from "@/components/ui/chat-message";
 import { useRouter } from "@tanstack/react-router";
-import { ChatMessageArea } from "@/components/ui/chat-message-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TextShimmer } from "@/components/ui/text-shimmer";
+import { LoaderFive } from "@/components/ui/loader";
+import { ErrorState } from "@/components/ui/error-state";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import {
+  Message,
+  MessageContent,
+  MessageAvatar,
+} from "@/components/ai-elements/message";
+import { useUserStore } from "@/store/user.store";
+import { Response } from "@/components/ai-elements/response";
+import { Actions, Action } from "@/components/ai-elements/actions";
+import { RefreshCcw as RefreshCcwIcon, Copy as CopyIcon } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
 import { env } from "@/config/env";
 import { toast } from "sonner";
 import { useEffect, useRef, useState, useMemo } from "react";
-import {
-  useMutation,
-  useQueryErrorResetBoundary,
-  useQuery,
-} from "@tanstack/react-query";
+import { useQueryErrorResetBoundary, useQuery } from "@tanstack/react-query";
 import { trpc, queryClient } from "@/integrations/tanstack-query/root-provider";
 
 import { nanoid } from "nanoid";
+import {
+  ClaudeChatInput,
+  type FileWithPreview,
+  type PastedContent,
+} from "@/components/claude/claude-input";
 export const Route = createFileRoute("/_authenticated/chat/{-$threadId}")({
   component: ChatPage,
   errorComponent: ({ error, reset }) => {
@@ -72,6 +77,7 @@ function ChatPage() {
 
 export function Chat({ threadId }: { threadId: string | undefined }) {
   const router = useRouter();
+  const user = useUserStore((s) => s.user);
 
   const [isCreatingAndSending, setIsCreatingAndSending] = useState(false);
   const firstMessageSubmittedRef = useRef(false);
@@ -80,6 +86,10 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
   const effectiveThreadId = threadId ?? generatedIdRef.current;
 
   const chatSubmitRef = useRef<(() => void) | null>(null);
+  const extraPayloadRef = useRef<{
+    pastedContents?: string[];
+    fileTexts?: { name: string; text: string }[];
+  }>({});
 
   const {
     data,
@@ -93,9 +103,7 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
     placeholderData: (prev) => prev,
   });
 
-  const isError = isErrorFetching;
-
-  const { messages, input, handleInputChange, handleSubmit, status, stop } =
+  const { messages, input, handleSubmit, status, stop, setInput, append } =
     useChat({
       id: effectiveThreadId, // Single ID for both chat session and server thread
       api: `${env.VITE_API_BASE_URL}/api/chat`,
@@ -117,6 +125,10 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
         return {
           message: lastMessage,
           threadId: activeThreadId,
+          extras: {
+            pastedContents: extraPayloadRef.current.pastedContents ?? [],
+            fileTexts: extraPayloadRef.current.fileTexts ?? [],
+          },
         };
       },
 
@@ -132,10 +144,12 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
   // Store handleSubmit in ref so we can access it in mutation callbacks
   chatSubmitRef.current = handleSubmit;
 
-  const handleSubmitMessage = () => {
-    if (status === "streaming" || isCreatingAndSending) {
-      return;
-    }
+  const handleSubmitMessage = async (
+    composedInput: string,
+    extrasOnly: boolean
+  ) => {
+    // Prefer append to bypass handleSubmit's internal empty-input guard
+    const contentToSend = composedInput ?? "";
 
     if (!threadId) {
       // First message in a brand-new chat: send with generated thread id, then navigate
@@ -160,7 +174,8 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
         ];
       });
       setIsCreatingAndSending(true);
-      handleSubmit();
+      await append({ role: "user", content: contentToSend });
+      setInput("");
       router.navigate({
         to: "/chat/{-$threadId}",
         params: { threadId: effectiveThreadId },
@@ -169,7 +184,41 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
       setIsCreatingAndSending(false);
       return;
     }
-    handleSubmit();
+
+    await append({ role: "user", content: contentToSend });
+    setInput("");
+  };
+
+  const handleClaudeSend = (
+    message: string,
+    files: FileWithPreview[],
+    pasted: PastedContent[]
+  ) => {
+    const base = message.trim();
+
+    // Build extras payload for server
+    const pastedContents = (pasted || []).map((p) => p.content);
+    const fileTexts = (files || [])
+      .map((f) => {
+        const text = f.textContent?.trim();
+        if (!text) return null;
+        return { name: f.file.name, text };
+      })
+      .filter(Boolean) as { name: string; text: string }[];
+
+    extraPayloadRef.current = {
+      pastedContents,
+      fileTexts,
+    };
+
+    // Only send when there is base text or extras
+    if (!base && pastedContents.length === 0 && fileTexts.length === 0) {
+      return;
+    }
+
+    const extrasOnly =
+      !base && (pastedContents.length > 0 || fileTexts.length > 0);
+    handleSubmitMessage(base, extrasOnly);
   };
 
   // Distinct loading states: show skeleton only for initial fetch of existing chat without messages
@@ -182,10 +231,12 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
   );
 
   return (
-    <div className="flex flex-col h-full">
-      <ChatMessageArea scrollButtonAlignment="center" className="flex-1">
+    <div className="flex flex-col h-screen">
+      <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto w-full px-4 py-8 space-y-4">
-          {showSkeleton ? (
+          {isErrorFetching ? (
+            <ErrorState message="Failed to load messages. Please retry." />
+          ) : showSkeleton ? (
             <div className="max-w-2xl mx-auto w-full px-4 py-8 space-y-3">
               <Skeleton className="h-5 w-40" />
               <Skeleton className="h-4 w-5/6" />
@@ -203,60 +254,80 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
               )}
             </div>
           ) : (
-            <>
-              {messages.map((message) => {
-                if (message.role !== "user") {
-                  if (isError || status === "error") {
+            <Conversation className="relative w-full">
+              <ConversationContent>
+                {messages
+                  .filter(
+                    (m) =>
+                      !(
+                        m.role === "user" &&
+                        (!m.content || m.content.trim() === "")
+                      )
+                  )
+                  .map((message, messageIndex) => {
+                    const isLastMessage = messageIndex === messages.length - 1;
                     return (
-                      <ChatMessage key={message.id} id={message.id}>
-                        <ChatMessageAvatar />
-                        <ChatMessageContent
-                          content={
-                            message.content ||
-                            "An error occurred while generating the AI response."
-                          }
-                          className="text-destructive"
-                        />
-                      </ChatMessage>
+                      <div key={message.id}>
+                        <Message
+                          from={message.role as "user" | "assistant" | "system"}
+                        >
+                          <MessageContent>
+                            {message.role === "assistant" ? (
+                              <Response>{message.content}</Response>
+                            ) : (
+                              message.content
+                            )}
+                          </MessageContent>
+                          <MessageAvatar
+                            src={
+                              message.role === "user"
+                                ? user?.image || ""
+                                : "/logo512.png"
+                            }
+                            name={message.role === "user" ? user?.name : "AI"}
+                          />
+                        </Message>
+                        {message.role === "assistant" && isLastMessage && (
+                          <Actions className="mt-[-25px]">
+                            <Action
+                              onClick={() => {
+                                /* TODO: regenerate */
+                              }}
+                              label="Retry"
+                            >
+                              <RefreshCcwIcon className="size-3" />
+                            </Action>
+                            <Action
+                              onClick={() =>
+                                navigator.clipboard.writeText(message.content)
+                              }
+                              label="Copy"
+                            >
+                              <CopyIcon className="size-3" />
+                            </Action>
+                          </Actions>
+                        )}
+                      </div>
                     );
-                  }
-
-                  return (
-                    <ChatMessage key={message.id} id={message.id}>
-                      <ChatMessageAvatar />
-                      <ChatMessageContent content={message.content} />
-                    </ChatMessage>
-                  );
-                }
-                return (
-                  <ChatMessage
-                    key={message.id}
-                    id={message.id}
-                    variant="bubble"
-                    type="outgoing"
-                  >
-                    <ChatMessageContent content={message.content} />
-                  </ChatMessage>
-                );
-              })}
-            </>
+                  })}
+                {(isCreatingAndSending || status === "submitted") && (
+                  <Message from="assistant">
+                    <MessageContent>
+                      <div className="flex justify-start py-2">
+                        <LoaderFive text="Thinking…" />
+                      </div>
+                    </MessageContent>
+                  </Message>
+                )}
+              </ConversationContent>
+              <ConversationScrollButton />
+            </Conversation>
           )}
         </div>
-      </ChatMessageArea>
-      <div className="pt-2 flex justify-center">
-        <div className="bg-muted/30 rounded-t-lg pt-1 px-1 max-w-3xl w-full mx-2">
-          <ChatInput
-            value={input}
-            onChange={handleInputChange}
-            onSubmit={handleSubmitMessage}
-            loading={status === "streaming" || isCreatingAndSending}
-            onStop={stop}
-            className="w-full"
-          >
-            <ChatInputTextArea placeholder="Type your message..." />
-            <ChatInputSubmit />
-          </ChatInput>
-        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto w-full px-4 mb-6">
+        <ClaudeChatInput onSendMessage={handleClaudeSend} />
       </div>
     </div>
   );

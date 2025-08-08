@@ -490,7 +490,7 @@ const TextualFilePreviewCard: React.FC<{
 };
 
 // Main ChatInput Component
-const ClaudeChatInput: React.FC<ChatInputProps> = ({
+export const ClaudeChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   disabled = false,
   placeholder = "How can I help you today?",
@@ -581,14 +581,15 @@ const ClaudeChatInput: React.FC<ChatInputProps> = ({
             ? URL.createObjectURL(file)
             : undefined,
           type: file.type || "application/octet-stream",
-          uploadStatus: "pending" as const,
-          uploadProgress: 0,
+          // No real upload; mark complete immediately so sending isn't blocked
+          uploadStatus: "complete" as const,
+          uploadProgress: 100,
         }));
 
       setFiles((prev) => [...prev, ...newFiles]);
 
       newFiles.forEach((fileToUpload) => {
-        // Read text content for textual files
+        // Extract text content for textual files (non-blocking)
         if (isTextualFile(fileToUpload.file)) {
           readFileAsText(fileToUpload.file)
             .then((textContent) => {
@@ -611,38 +612,6 @@ const ClaudeChatInput: React.FC<ChatInputProps> = ({
               );
             });
         }
-
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileToUpload.id.toString()
-              ? { ...f, uploadStatus: "uploading" }
-              : f
-          )
-        );
-
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += Math.random() * 20 + 5; // Simulate faster upload
-          if (progress >= 100) {
-            progress = 100;
-            clearInterval(interval);
-            setFiles((prev) =>
-              prev.map((f) =>
-                f.id === fileToUpload.id.toString()
-                  ? { ...f, uploadStatus: "complete", uploadProgress: 100 }
-                  : f
-              )
-            );
-          } else {
-            setFiles((prev) =>
-              prev.map((f) =>
-                f.id === fileToUpload.id.toString()
-                  ? { ...f, uploadProgress: progress }
-                  : f
-              )
-            );
-          }
-        }, 150); // Faster interval
       });
     },
     [files.length, maxFiles, maxFileSize, acceptedFileTypes]
@@ -762,10 +731,10 @@ const ClaudeChatInput: React.FC<ChatInputProps> = ({
 
   const hasContent =
     message.trim() || files.length > 0 || pastedContent.length > 0;
-  const canSend =
-    hasContent &&
-    !disabled &&
-    !files.some((f) => f.uploadStatus === "uploading");
+  const isExtractingText = files.some(
+    (f) => isTextualFile(f.file) && typeof f.textContent === "undefined"
+  );
+  const canSend = hasContent && !disabled && !isExtractingText;
 
   return (
     <div
@@ -875,7 +844,10 @@ const ClaudeChatInput: React.FC<ChatInputProps> = ({
         type="file"
         multiple
         className="hidden"
-        accept={acceptedFileTypes?.join(",")}
+        accept={
+          acceptedFileTypes?.join(",") ||
+          "text/*,.txt,.md,.csv,.json,.xml,.yaml,.yml,.log,.ini,.conf,.config,.js,.ts,.tsx,.jsx,.py,.rb,.go,.java,.c,.cpp,.cs,.rs,.sh,.bash,.sql,.html,.css,.scss,.toml"
+        }
         onChange={(e) => {
           handleFileSelect(e.target.files);
           if (e.target) e.target.value = ""; // Reset file input
@@ -885,49 +857,49 @@ const ClaudeChatInput: React.FC<ChatInputProps> = ({
   );
 };
 
-export const Component = () => {
-  const handleSendMessage = (
-    message: string,
-    files: FileWithPreview[],
-    pastedContent: PastedContent[]
-  ) => {
-    console.log("Message:", message);
-    console.log("Files:", files);
-    console.log("Pasted Content:", pastedContent);
+// export const Component = () => {
+//   const handleSendMessage = (
+//     message: string,
+//     files: FileWithPreview[],
+//     pastedContent: PastedContent[]
+//   ) => {
+//     console.log("Message:", message);
+//     console.log("Files:", files);
+//     console.log("Pasted Content:", pastedContent);
 
-    // Here you would typically send this data to your backend/AI service
-    alert(
-      `Message sent!\nText: ${message}\nFiles: ${files.length}\nPasted Content: ${pastedContent.length}`
-    );
-  };
+//     // Here you would typically send this data to your backend/AI service
+//     alert(
+//       `Message sent!\nText: ${message}\nFiles: ${files.length}\nPasted Content: ${pastedContent.length}`
+//     );
+//   };
 
-  return (
-    <div className="min-h-screen w-screen bg-[#262624] flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        <div className="mb-8 text-center py-16">
-          <h1 className="text-3xl font-serif font-light text-[#C2C0B6] mb-2">
-            What's new, Suraj?
-          </h1>
-        </div>
+//   return (
+//     <div className="min-h-screen w-screen bg-[#262624] flex items-center justify-center p-4">
+//       <div className="w-full max-w-4xl">
+//         <div className="mb-8 text-center py-16">
+//           <h1 className="text-3xl font-serif font-light text-[#C2C0B6] mb-2">
+//             What's new, Suraj?
+//           </h1>
+//         </div>
 
-        <ClaudeChatInput
-          onSendMessage={handleSendMessage}
-          placeholder="Try pasting large text or uploading textual files..."
-          maxFiles={10}
-          maxFileSize={10 * 1024 * 1024} // 10MB
-        />
+//         <ClaudeChatInput
+//           onSendMessage={handleSendMessage}
+//           placeholder="Try pasting large text or uploading textual files..."
+//           maxFiles={10}
+//           maxFileSize={10 * 1024 * 1024} // 10MB
+//         />
 
-        {/* <div className="mt-8 text-sm text-zinc-500 space-y-2">
-          <p><strong>Features:</strong></p>
-          <ul className="list-disc list-inside space-y-1 ml-4">
-            <li>Upload textual files (.md, .py, .html, .js, etc.) to see content preview</li>
-            <li>Upload images/media files to see the traditional file preview</li>
-            <li>Paste large text content to see pasted content cards</li>
-            <li>Drag and drop files for easy uploading</li>
-            <li>Copy content from textual files and pasted content</li>
-          </ul>
-        </div> */}
-      </div>
-    </div>
-  );
-};
+//         {/* <div className="mt-8 text-sm text-zinc-500 space-y-2">
+//           <p><strong>Features:</strong></p>
+//           <ul className="list-disc list-inside space-y-1 ml-4">
+//             <li>Upload textual files (.md, .py, .html, .js, etc.) to see content preview</li>
+//             <li>Upload images/media files to see the traditional file preview</li>
+//             <li>Paste large text content to see pasted content cards</li>
+//             <li>Drag and drop files for easy uploading</li>
+//             <li>Copy content from textual files and pasted content</li>
+//           </ul>
+//         </div> */}
+//       </div>
+//     </div>
+//   );
+// };

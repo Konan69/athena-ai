@@ -115,11 +115,16 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
         >
           <SidebarMenuButton
             {...cursorGlowProps()}
-            onMouseEnter={() =>
-              queryClient.prefetchQuery(
-                trpc.chat.getChatMessages.queryOptions({ threadId: chat.id })
-              )
-            }
+            onMouseEnter={() => {
+              setTimeout(() => {
+                queryClient.prefetchQuery({
+                  ...trpc.chat.getChatMessages.queryOptions({
+                    threadId: chat.id,
+                  }),
+                  staleTime: 20_000,
+                });
+              }, 200);
+            }}
             className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
             tooltip={humanizeDate(chat.updatedAt || chat.createdAt)}
           >
@@ -173,6 +178,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
     ...baseGetChats,
     // Keep showing current list during refetches to prevent loading flicker
     placeholderData: (prev) => prev,
+    staleTime: 10_000,
   });
 
   const groups = data

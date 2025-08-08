@@ -3,15 +3,25 @@ import db from "../../db";
 import { mastra as mastraSchema } from "../../db/schemas";
 import { mastra } from "../../mastra";
 import { ChatRequest } from "./validators";
+import { composeUserMessage } from "./utils/compose";
 import { memory } from "../../config/memory";
 import { HTTPException } from "hono/http-exception";
 
 export class ChatService {
   async processChat(request: ChatRequest) {
-    const { message, threadId, resourceId } = request;
+    const { message, threadId, resourceId, extras } = request;
+
+    const effectiveMessage = composeUserMessage(message, extras);
+
+    console.log("Processing chat:", {
+      message: effectiveMessage,
+      threadId,
+      resourceId,
+      extras,
+    });
 
     // Handle cases where message might be null (e.g., initial load or error)
-    if (!message || !message.content) {
+    if (!effectiveMessage) {
       throw new HTTPException(400, { message: "Missing message content" });
     }
 
@@ -22,7 +32,7 @@ export class ChatService {
     }
 
     // Process with memory using the single message content
-    const stream = await agent.stream(message.content, {
+    const stream = await agent.stream(effectiveMessage.content, {
       memory: {
         thread: threadId,
         resource: resourceId!,
