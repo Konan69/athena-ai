@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import db from "../../db";
 import { mastra as mastraSchema } from "../../db/schemas";
 import { mastra } from "../../mastra";
@@ -102,6 +102,54 @@ export class ChatService {
       .orderBy(desc(mastraSchema.mastraThreads.createdAt));
 
     return chats;
+  }
+
+  async renameChat(userId: string, threadId: string, title: string) {
+    const now = new Date().toISOString();
+    const updated = await db
+      .update(mastraSchema.mastraThreads)
+      .set({
+        title,
+        updatedAt: now,
+        updatedAtZ: now,
+      })
+      .where(
+        and(
+          eq(mastraSchema.mastraThreads.id, threadId),
+          eq(mastraSchema.mastraThreads.resourceId, userId)
+        )
+      )
+      .returning();
+
+    if (!updated.length) {
+      throw new HTTPException(404, { message: "Thread not found" });
+    }
+    return updated[0];
+  }
+
+  async deleteChat(userId: string, threadId: string) {
+    // Delete related messages first
+    await db
+      .delete(mastraSchema.mastraMessages)
+      .where(eq(mastraSchema.mastraMessages.threadId, threadId));
+
+    // Delete the thread (scoped to user)
+    const deleted = await db
+      .delete(mastraSchema.mastraThreads)
+      .where(
+        and(
+          eq(mastraSchema.mastraThreads.id, threadId),
+          eq(mastraSchema.mastraThreads.resourceId, userId)
+        )
+      )
+      .returning({ id: mastraSchema.mastraThreads.id });
+
+    if (!deleted.length) {
+      throw new HTTPException(404, { message: "Thread not found" });
+    }
+
+    const first = deleted[0]!;
+    return { success: true, id: first.id } as const;
   }
 }
 

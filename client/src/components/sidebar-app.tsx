@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -15,10 +16,19 @@ import {
 } from "@/components/ui/sidebar";
 
 import { NavUser } from "@/components/nav-user";
-import { MessageCircle, SquarePen, BookOpen, QrCode } from "lucide-react";
+import {
+  MessageCircle,
+  SquarePen,
+  BookOpen,
+  QrCode,
+  PencilLine,
+  Trash2,
+  Check,
+  X as XIcon,
+} from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { cursorGlowProps } from "@/lib/utils";
 import {
@@ -96,6 +106,81 @@ type ChatListItemProps = {
 };
 
 const ChatListItem = ({ chat, index }: ChatListItemProps) => {
+  const router = useRouter();
+  const baseGetChats = trpc.chat.getChats.queryOptions();
+  const renameMutation = useMutation({
+    ...trpc.chat.renameChat.mutationOptions(),
+    onMutate: async (vars: { threadId: string; title: string }) => {
+      await queryClient.cancelQueries(baseGetChats);
+      const prev = queryClient.getQueryData<ChatItem[]>(baseGetChats.queryKey);
+      const now = new Date().toISOString();
+      queryClient.setQueryData<ChatItem[]>(
+        baseGetChats.queryKey,
+        (old) =>
+          old?.map((c) =>
+            c.id === vars.threadId
+              ? { ...c, title: vars.title, updatedAt: now, updatedAtZ: now }
+              : c
+          ) || old
+      );
+      // Return type must be void for our mutationOptions typing
+      return undefined;
+    },
+    onError: () => {
+      queryClient.invalidateQueries(baseGetChats);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(baseGetChats);
+    },
+  });
+  const deleteMutation = useMutation({
+    ...trpc.chat.deleteChat.mutationOptions(),
+    onMutate: async (vars: { threadId: string }) => {
+      await queryClient.cancelQueries(baseGetChats);
+      const prev = queryClient.getQueryData<ChatItem[]>(baseGetChats.queryKey);
+      queryClient.setQueryData<ChatItem[]>(
+        baseGetChats.queryKey,
+        (old) => old?.filter((c) => c.id !== vars.threadId) || old
+      );
+      return undefined;
+    },
+    onError: () => {
+      queryClient.invalidateQueries(baseGetChats);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(baseGetChats);
+    },
+    onSuccess: (_res, vars) => {
+      const current = router.state.location;
+      if (current.pathname === `/chat/${vars.threadId}`) {
+        router.navigate({ to: "/" });
+      }
+    },
+  });
+
+  const [hovered, setHovered] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(truncateTitle(chat.title || ""));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  const commitRename = () => {
+    const title = truncateTitle(draftTitle.trim());
+    if (!title || title === chat.title) {
+      setEditing(false);
+      setDraftTitle(truncateTitle(chat.title || ""));
+      return;
+    }
+    renameMutation.mutate({ threadId: chat.id, title });
+    setEditing(false);
+  };
+
   return (
     <SidebarMenuItem>
       <motion.div
@@ -107,6 +192,9 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
           duration: 0.18,
           ease: "easeOut",
         }}
+        onHoverStart={() => setHovered(true)}
+        onHoverEnd={() => setHovered(false)}
+        className="relative"
       >
         <Link
           to="/chat/{-$threadId}"
@@ -115,17 +203,7 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
         >
           <SidebarMenuButton
             {...cursorGlowProps()}
-            onMouseEnter={() => {
-              setTimeout(() => {
-                queryClient.prefetchQuery({
-                  ...trpc.chat.getChatMessages.queryOptions({
-                    threadId: chat.id,
-                  }),
-                  staleTime: 20_000,
-                });
-              }, 200);
-            }}
-            className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform"
+            className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform pr-20"
             tooltip={humanizeDate(chat.updatedAt || chat.createdAt)}
           >
             <span
@@ -136,11 +214,92 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
                   "radial-gradient(26px 26px at var(--mx) var(--my), oklch(0.72 0.25 300 / 0.10), transparent 55%)",
               }}
             />
-            <span className="relative truncate transition-transform duration-150">
-              {truncateTitle(chat.title || "Untitled chat")}
-            </span>
+            {editing ? (
+              <div className="relative w-full flex items-center gap-2">
+                <input
+                  ref={inputRef}
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitRename();
+                    if (e.key === "Escape") {
+                      setEditing(false);
+                      setDraftTitle(truncateTitle(chat.title || ""));
+                    }
+                  }}
+                  onBlur={commitRename}
+                  className="flex-1 bg-transparent outline-none text-left text-sm"
+                />
+                <div className="ml-auto flex items-center gap-1 pr-2">
+                  <button
+                    type="button"
+                    className="p-1 rounded hover:bg-foreground/5"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={commitRename}
+                    aria-label="Save"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className="p-1 rounded hover:bg-foreground/5"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setEditing(false);
+                      setDraftTitle(truncateTitle(chat.title || ""));
+                    }}
+                    aria-label="Cancel"
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <span className="relative truncate transition-transform duration-150">
+                {truncateTitle(chat.title || "Untitled chat")}
+              </span>
+            )}
           </SidebarMenuButton>
         </Link>
+
+        {/* Hover actions */}
+        {!editing && (
+          <motion.div
+            initial={{ x: 16, opacity: 0 }}
+            animate={{ x: hovered ? 0 : 16, opacity: hovered ? 1 : 0 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="pointer-events-none absolute inset-y-0 right-2 flex items-center gap-1"
+          >
+            <button
+              type="button"
+              className="pointer-events-auto p-1.5 rounded-md hover:bg-[oklch(0.72_0.25_300_/0.10)]"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setEditing(true);
+              }}
+              aria-label="Rename"
+              title="Rename"
+            >
+              <PencilLine className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="pointer-events-auto p-1.5 rounded-md hover:bg-destructive/10 text-destructive"
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!window.confirm("Delete this chat? This cannot be undone."))
+                  return;
+                deleteMutation.mutate({ threadId: chat.id });
+              }}
+              aria-label="Delete"
+              title="Delete"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
       </motion.div>
     </SidebarMenuItem>
   );

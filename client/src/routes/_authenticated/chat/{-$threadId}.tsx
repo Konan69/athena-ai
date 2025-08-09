@@ -278,14 +278,12 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
                               message.content
                             )}
                           </MessageContent>
-                          <MessageAvatar
-                            src={
-                              message.role === "user"
-                                ? user?.image || ""
-                                : "/logo512.png"
-                            }
-                            name={message.role === "user" ? user?.name : "AI"}
-                          />
+                          {message.role === "user" && (
+                            <MessageAvatar
+                              src={user?.image || ""}
+                              name={user?.name}
+                            />
+                          )}
                         </Message>
                         {message.role === "assistant" && isLastMessage && (
                           <Actions className="mt-[-25px]">

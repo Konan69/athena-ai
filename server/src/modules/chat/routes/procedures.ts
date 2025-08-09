@@ -32,6 +32,31 @@ export const chatProcedures = createTRPCRouter({
       );
       return messages;
     }),
+  renameChat: protectedProcedure
+    .input(
+      z.object({
+        threadId: z.string(),
+        title: z.string().min(1).max(200),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const updated = await chatService.renameChat(
+        ctx.user.id,
+        input.threadId,
+        input.title
+      );
+      return updated;
+    }),
+  deleteChat: protectedProcedure
+    .input(
+      z.object({
+        threadId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await chatService.deleteChat(ctx.user.id, input.threadId);
+      return result;
+    }),
   sayHello: publicProcedure.query(async ({ ctx }) => {
     return "Hello, world!";
   }),
