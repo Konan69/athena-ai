@@ -1,5 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useLibraryStore } from "@/store/library.store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,8 +18,6 @@ import {
   Search,
   Clock,
   X,
-  Book,
-  BookAIcon,
   BookOpen,
   BookHeartIcon,
 } from "lucide-react";
@@ -66,14 +65,20 @@ export const Route = createFileRoute("/_authenticated/library")({
 
 export function LibraryPage() {
   const { data } = Route.useLoaderData();
-  const [objects, setObjects] = useState<typeof data>(data);
+  const items = useLibraryStore((s) => s.items);
+  const setItems = useLibraryStore((s) => s.setItems);
+  const addProcessingItem = useLibraryStore((s) => s.addProcessingItem);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "ready" | "processing" | "failed"
   >("all");
 
-  const filteredObjects = objects.filter((obj) => {
+  useEffect(() => {
+    setItems(data);
+  }, [data, setItems]);
+
+  const filteredObjects = items.filter((obj) => {
     const matchesSearch =
       obj.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       obj.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -86,18 +91,14 @@ export function LibraryPage() {
     return matchesSearch && matchesFilter;
   });
 
-  const handleUploadComplete = (
-    newObject: Omit<(typeof data)[0], "id" | "createdAt" | "status">
-  ) => {
-    setObjects([
-      ...objects,
-      {
-        ...newObject,
-        id: Date.now().toString(),
-        createdAt: new Date().toLocaleDateString(),
-        status: "processing",
-      },
-    ]);
+  const handleUploadComplete = (newObject: {
+    title: string;
+    description: string;
+    fileSize: string;
+    tags?: string[];
+    uploadLink: string;
+  }) => {
+    addProcessingItem(newObject);
   };
 
   const getStatusBadge = (status: (typeof data)[0]["status"]) => {
@@ -122,7 +123,7 @@ export function LibraryPage() {
     }
   };
 
-  if (objects.length === 0) {
+  if (items.length === 0) {
     return (
       <>
         <div className="flex-1 flex items-center justify-center p-8">
@@ -137,7 +138,11 @@ export function LibraryPage() {
               }}
             />
             <div className="mt-4" />
-            <InputModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
+            <InputModal
+              isOpen={isModalOpen}
+              onOpenChange={setIsModalOpen}
+              onComplete={handleUploadComplete}
+            />
           </div>
         </div>
       </>
@@ -154,7 +159,11 @@ export function LibraryPage() {
               <Upload className="h-4 w-4 mr-2" />
               Upload Document
             </Button>
-            <InputModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
+            <InputModal
+              isOpen={isModalOpen}
+              onOpenChange={setIsModalOpen}
+              onComplete={handleUploadComplete}
+            />
           </div>
 
           <div className="flex gap-4 mb-6">
@@ -174,26 +183,26 @@ export function LibraryPage() {
               variant={filterStatus === "all" ? "default" : "outline"}
               onClick={() => setFilterStatus("all")}
             >
-              All ({objects.length})
+              All ({items.length})
             </Button>
             <Button
               variant={filterStatus === "ready" ? "default" : "outline"}
               onClick={() => setFilterStatus("ready")}
             >
-              Ready ({objects.filter((o) => o.status === "ready").length})
+              Ready ({items.filter((o) => o.status === "ready").length})
             </Button>
             <Button
               variant={filterStatus === "processing" ? "default" : "outline"}
               onClick={() => setFilterStatus("processing")}
             >
               Processing (
-              {objects.filter((o) => o.status === "processing").length})
+              {items.filter((o) => o.status === "processing").length})
             </Button>
             <Button
               variant={filterStatus === "failed" ? "default" : "outline"}
               onClick={() => setFilterStatus("failed")}
             >
-              Failed ({objects.filter((o) => o.status === "failed").length})
+              Failed ({items.filter((o) => o.status === "failed").length})
             </Button>
           </div>
 
@@ -217,7 +226,12 @@ export function LibraryPage() {
                     <span>
                       {obj.title} • {obj.fileSize}
                     </span>
-                    <span>Created {obj.createdAt}</span>
+                    <span>
+                      Created{" "}
+                      {typeof obj.createdAt === "string"
+                        ? obj.createdAt
+                        : obj.createdAt?.toLocaleDateString()}
+                    </span>
                   </div>
                   {obj.tags && obj.tags.length > 0 && (
                     <div className="flex gap-2 mt-3">

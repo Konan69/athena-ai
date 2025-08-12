@@ -1,5 +1,5 @@
 import { createTRPCRouter, protectedProcedure } from "../../../trpc/base";
-import { createLibraryItemSchema } from "../libraryValidator";
+import { createLibraryItemSchema, presignedUrlSchema } from "../libraryValidator";
 import { libraryService } from "../libraryService";
 
 export const libraryProcedures = createTRPCRouter({
@@ -15,4 +15,11 @@ export const libraryProcedures = createTRPCRouter({
     const items = await libraryService.getLibraryItems(userId);
     return items;
   }),
+
+  getPresignedUrl: protectedProcedure.input(presignedUrlSchema)
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.user.id;
+      const url = await libraryService.getPresignedUrl(userId, input);
+      return url;
+    }),
 });

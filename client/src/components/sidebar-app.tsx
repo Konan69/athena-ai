@@ -495,7 +495,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
               {!!groups.lastWeek.length && (
                 <SidebarGroup>
                   <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
-                    Previous 7 Days
+                    Past 7 Days
                   </SidebarGroupLabel>
                   <SidebarMenu>
                     <AnimatePresence initial={false}>
@@ -510,7 +510,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
               {!!groups.lastMonth.length && (
                 <SidebarGroup>
                   <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
-                    Previous 30 Days
+                    Past 30 Days
                   </SidebarGroupLabel>
                   <SidebarMenu>
                     <AnimatePresence initial={false}>

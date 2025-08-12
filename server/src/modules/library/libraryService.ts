@@ -1,6 +1,6 @@
+import { getS3Client, s3Client } from "../../config/storage";
 import db from "../../db";
 import { library, libraryItem, user } from "../../db/schemas";
-import { LibraryItem } from "./libraryInterfaces";
 import { CreateLibraryItemPayload } from "./libraryValidator";
 import { desc, eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
@@ -38,6 +38,22 @@ export class LibraryService {
       })
       .returning();
     return data;
+  }
+
+  async getPresignedUrl(userId: string, input: { key: string; contentType: string }) {
+    const objectKey = `library/${userId}/${input.key}`;
+
+    const presignedUrl = getS3Client().presign(objectKey, {
+      method: 'PUT',
+      expiresIn: 300,
+      type: input.contentType,
+      acl: "private",
+    });
+
+    return {
+      uploadUrl: presignedUrl,
+      objectKey,
+    };
   }
 }
 
