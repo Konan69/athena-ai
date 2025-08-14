@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import type { LibraryItem } from "@athena-ai/server/types";
 
-export type LibraryStatus = "processing" | "ready" | "failed";
+
+type LibraryStatus = LibraryItem["status"];
 
 export interface LibraryItemUI {
 	id: string;
@@ -16,6 +18,7 @@ export interface LibraryItemUI {
 
 interface LibraryState {
 	items: LibraryItemUI[];
+	jobProgress: Record<string, { percent: number; stage: string; message?: string }>;
 }
 
 interface LibraryActions {
@@ -27,11 +30,17 @@ interface LibraryActions {
 		tags?: string[];
 		uploadLink: string;
 	}) => void;
+	updateItemStatus: (id: string, status: LibraryStatus) => void;
+	upsertJobProgress: (
+		jobId: string,
+		progress: { percent: number; stage: string; message?: string }
+	) => void;
 }
 
 export const useLibraryStore = create(
 	immer<LibraryState & LibraryActions>((set) => ({
 		items: [],
+		jobProgress: {},
 		setItems: (items) => set((s) => {
 			s.items = items;
 		}),
@@ -48,6 +57,15 @@ export const useLibraryStore = create(
 					status: "processing",
 				};
 				s.items.push(optimistic);
+			}),
+		updateItemStatus: (id, status) =>
+			set((s) => {
+				const target = s.items.find((i: LibraryItemUI) => i.id === id);
+				if (target) target.status = status;
+			}),
+		upsertJobProgress: (jobId, progress) =>
+			set((s) => {
+				s.jobProgress[jobId] = progress;
 			}),
 	}))
 );

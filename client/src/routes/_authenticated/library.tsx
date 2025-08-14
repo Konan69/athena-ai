@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useLibraryStore } from "@/store/library.store";
+import { useQuery } from "@tanstack/react-query";
+import { trpc } from "@/integrations/tanstack-query/root-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -64,19 +65,14 @@ export const Route = createFileRoute("/_authenticated/library")({
 });
 
 export function LibraryPage() {
-  const { data } = Route.useLoaderData();
-  const items = useLibraryStore((s) => s.items);
-  const setItems = useLibraryStore((s) => s.setItems);
-  const addProcessingItem = useLibraryStore((s) => s.addProcessingItem);
+  const { data: initial } = Route.useLoaderData();
+  const itemsQuery = useQuery(trpc.library.getLibraryItems.queryOptions());
+  const items = itemsQuery.data ?? initial;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "ready" | "processing" | "failed"
   >("all");
-
-  useEffect(() => {
-    setItems(data);
-  }, [data, setItems]);
 
   const filteredObjects = items.filter((obj) => {
     const matchesSearch =
@@ -91,17 +87,15 @@ export function LibraryPage() {
     return matchesSearch && matchesFilter;
   });
 
-  const handleUploadComplete = (newObject: {
+  const handleUploadComplete = (_newObject: {
     title: string;
     description: string;
-    fileSize: string;
+    fileSize: number;
     tags?: string[];
     uploadLink: string;
-  }) => {
-    addProcessingItem(newObject);
-  };
+  }) => {};
 
-  const getStatusBadge = (status: (typeof data)[0]["status"]) => {
+  const getStatusBadge = (status: (typeof items)[0]["status"]) => {
     switch (status) {
       case "ready":
         return <Badge variant="default">Ready</Badge>;
@@ -112,7 +106,7 @@ export function LibraryPage() {
     }
   };
 
-  const getStatusIcon = (status: (typeof data)[0]["status"]) => {
+  const getStatusIcon = (status: (typeof items)[0]["status"]) => {
     switch (status) {
       case "ready":
         return <FileText className="h-4 w-4 text-green-600" />;
@@ -230,7 +224,9 @@ export function LibraryPage() {
                       Created{" "}
                       {typeof obj.createdAt === "string"
                         ? obj.createdAt
-                        : obj.createdAt?.toLocaleDateString()}
+                        : obj.createdAt
+                        ? new Date(obj.createdAt as string).toLocaleDateString()
+                        : ""}
                     </span>
                   </div>
                   {obj.tags && obj.tags.length > 0 && (

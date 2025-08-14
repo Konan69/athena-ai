@@ -29,3 +29,23 @@ export interface SuccessResponse<T> extends BaseResponse {
 }
 
 export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+
+// RAG event types and schemas re-exported for consumers (frontend)
+export type {
+  TrainingEvent,
+  JobStartedEvent,
+  JobProgressEvent,
+  JobCompletedEvent,
+  JobFailedEvent,
+} from "../modules/RAG/events";
+
+export {
+  RAGStage,
+  baseEvent,
+  jobStartedEvent,
+  jobProgressEvent,
+  jobCompletedEvent,
+  jobFailedEvent,
+} from "../modules/RAG/events";
+
+export type { LibraryItem } from "./library";

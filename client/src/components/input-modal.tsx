@@ -15,7 +15,7 @@ interface InputModalProps {
   onComplete?: (item: {
     title: string;
     description: string;
-    fileSize: string;
+    fileSize: number;
     tags?: string[];
     uploadLink: string;
   }) => void;

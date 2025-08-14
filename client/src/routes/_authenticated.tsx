@@ -2,6 +2,8 @@ import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
 import { SidebarApp } from "@/components/sidebar-app";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useSessionStore } from "@/store/session.store";
+import EventHandler from "@/components/handlers/eventHandler";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
@@ -24,6 +26,9 @@ export const Route = createFileRoute("/_authenticated")({
     }
   },
   component: () => {
+    useEffect(() => {
+      EventHandler();
+    }, []);
     return (
       <SidebarProvider>
         <div className="relative z-10 flex h-screen w-full overflow-hidden">

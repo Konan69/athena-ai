@@ -3,18 +3,31 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { env } from "../../config/env";
 import db from "../../db";
+
 import { createAuthMiddleware } from "better-auth/api";
 import { library } from "@/src/db/schemas";
+import { RedisService } from "@/src/config/redis";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
+  // TODO: add organization tenancy [important create org embedding this.vectorStore.createIndex(`org_${orgId}`, 512, 'cosine');]
   appName: "Athena AI",
   trustedOrigins: ["http://localhost:3000", env.CLIENT_URL],
   secret: env.BETTER_AUTH_SECRET,
+  // TODO: REVIEW THIS
   // secondaryStorage: {
-  //   // TODO: add redis adapter
+  //   get: async (key: string) => {
+  //     const value = await RedisService.instance.publisher.get(key);
+  //     return value ? JSON.parse(value) : null;
+  //   },
+  //   set: async (key: string, value: any) => {
+  //     await RedisService.instance.publisher.set(key, JSON.stringify(value));
+  //   },
+  //   delete: async (key: string) => {
+  //     await RedisService.instance.publisher.del(key);
+  //   },
   // },
   socialProviders: {
     google: {
@@ -32,6 +45,7 @@ export const auth = betterAuth({
         if (newSession) {
           try {
             // Automatically create library for new user
+            // TODO: do this during onboarding 
             await db.insert(library).values({
               userId: newSession.user.id,
             });

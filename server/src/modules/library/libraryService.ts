@@ -4,6 +4,7 @@ import { library, libraryItem, user } from "../../db/schemas";
 import { CreateLibraryItemPayload } from "./libraryValidator";
 import { desc, eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
+import ragService from "../RAG/ragService";
 
 export class LibraryService {
   async getLibraryItems(userId: string) {
@@ -34,9 +35,17 @@ export class LibraryService {
         uploadLink: payload.uploadLink,
         status: "processing",
         libraryId: userLibrary.id,
-        fileSize: payload.fileSize, //TODO: get filesize from the s3
+        fileSize: payload.fileSize,
+        tags: payload.tags,
       })
       .returning();
+
+    const created = data[0]!;
+    // Fire-and-forget background training with events; pass only essentials
+    ragService
+      .train({ userId, item: created })
+      .catch(() => { });
+
     return data;
   }
 

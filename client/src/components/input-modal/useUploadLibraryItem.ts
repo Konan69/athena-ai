@@ -1,13 +1,13 @@
-import { useState } from "react";
-import axios, { AxiosError } from "axios";
-import { useMutation } from "@tanstack/react-query";
 import { trpc, queryClient } from "@/integrations/tanstack-query/root-provider";
+import { useMutation } from "@tanstack/react-query";
+import axios, { AxiosError } from "axios";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export type UploadCompletePayload = {
 	title: string;
 	description: string;
-	fileSize: string;
+	fileSize: number;
 	tags?: string[];
 	uploadLink: string;
 };
@@ -24,15 +24,6 @@ export function useUploadLibraryItem({
 	const createItemMutation = useMutation({
 		...trpc.library.createLibraryItem.mutationOptions(),
 	});
-
-	function formatBytes(bytes: number) {
-		if (bytes === 0) return "0 B";
-		const k = 1024;
-		const sizes = ["B", "KB", "MB", "GB", "TB"];
-		const i = Math.floor(Math.log(bytes) / Math.log(k));
-		const value = bytes / Math.pow(k, i);
-		return `${value.toFixed(i === 0 ? 0 : 2)} ${sizes[i]}`;
-	}
 
 	async function handleUploadSubmit({
 		file,
@@ -68,12 +59,27 @@ export function useUploadLibraryItem({
 			await axios.put(presigned.uploadUrl, file, {
 				headers: { "Content-Type": file.type },
 			});
-			const fileSize = formatBytes(file.size);
-			await createItemMutation.mutateAsync({
+			const fileSize = file.size
+			const created = await createItemMutation.mutateAsync({
 				title,
 				description,
 				uploadLink: presigned.objectKey,
 				fileSize,
+			});
+			// Optimistically reflect new processing item in cache
+			queryClient.setQueryData(trpc.library.getLibraryItems.queryKey(), (prev: any) => {
+				const optimistic = {
+					id: created?.[0]?.id ?? Date.now().toString(),
+					title,
+					description,
+					uploadLink: presigned.objectKey,
+					fileSize,
+					tags: tags ?? [],
+					createdAt: new Date().toISOString(),
+					status: "processing",
+				};
+				if (!Array.isArray(prev)) return [optimistic];
+				return [...prev, optimistic];
 			});
 			onComplete?.({
 				title,

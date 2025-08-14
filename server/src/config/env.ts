@@ -46,6 +46,7 @@ export const env = createEnv({
     WEB_SEARCH_PROVIDER: z
       .enum(["exa", "brave"])
       .describe("The web search provider to use"),
+    REDIS_URL: z.string().min(1),
   },
   runtimeEnv: getRuntimeEnv(),
   emptyStringAsUndefined: true,

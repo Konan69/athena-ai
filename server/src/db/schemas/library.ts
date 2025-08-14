@@ -1,12 +1,14 @@
-import { pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { user } from "./user";
 import { nanoid } from "nanoid";
 import { pgEnum } from "drizzle-orm/pg-core";
+import { InferSelectModel } from "drizzle-orm";
 
 export const libraryItemStatus = pgEnum("status", [
   "processing",
   "ready",
   "failed",
+  "pending",
 ]);
 
 export const library = pgTable(
@@ -27,7 +29,7 @@ export const libraryItem = pgTable("library_item", {
   title: text().notNull(),
   description: text().notNull(),
   uploadLink: text().notNull(),
-  fileSize: text().notNull(),
+  fileSize: integer().notNull(),
   status: libraryItemStatus("processing").notNull(),
   createdAt: timestamp({ mode: "string" }).defaultNow(),
   updatedAt: timestamp({ mode: "string" }),
@@ -39,3 +41,5 @@ export const libraryItem = pgTable("library_item", {
 });
 
 export default library;
+
+export type LibraryItem = InferSelectModel<typeof libraryItem>;

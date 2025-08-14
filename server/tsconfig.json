@@ -31,9 +31,6 @@
     "src/**/*",
     "mastra/**/*"
   ],
-  "references": [
-    { "path": "../shared" }
-  ],
   "exclude": [
     "node_modules"
   ]
