@@ -9,3 +9,4 @@ export class TextExtractor implements ExtractorStrategy {
 }
 
 
+
