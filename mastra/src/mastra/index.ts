@@ -20,6 +20,7 @@ export const mcp = new MCPClient({
   },
 });
 
+
 export const mastra = new Mastra({
   workflows: {
     researchWorkflow,
@@ -35,7 +36,7 @@ export const mastra = new Mastra({
   }),
   // Configure server settings for production
   server: {
-    port: parseInt(env.MASTRA_PORT) || 4111,
+    port: parseInt(env.MASTRA_PORT),
     host: "localhost",
   },
 });

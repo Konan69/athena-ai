@@ -1,10 +1,10 @@
 import { and, desc, eq } from "drizzle-orm";
 import db from "../../db";
-import { mastra as mastraSchema } from "../../db/schemas";
-import { mastra } from "../../mastra";
+import { mastraThreads, mastraMessages } from "../../db/schemas";
+import { mastra } from "../../config/mastra";
 import { ChatRequest } from "./validators";
 import { composeUserMessage } from "./utils/compose";
-import { memory } from "../../config/memory";
+import { memory } from "../../config/mastra";
 import { HTTPException } from "hono/http-exception";
 
 export class ChatService {
@@ -26,34 +26,17 @@ export class ChatService {
     }
 
     // Get the agent from Mastra
-    const agent = mastra.getAgents().athenaAI;
+    const agent = mastra.getAgent("athenaAI");
     if (!agent) {
       throw new HTTPException(500, { message: "Agent not found" });
     }
 
     // Process with memory using the single message content
-    const stream = await agent.stream(effectiveMessage.content, {
+    const stream = await agent.stream({
+      messages: effectiveMessage.content,
       memory: {
         thread: threadId,
         resource: resourceId!,
-      },
-
-      onStepFinish: ({ text, toolCalls, toolResults }) => {
-        console.log("Step completed:", { text, toolCalls, toolResults });
-      },
-      onFinish: ({
-        steps,
-        text,
-        finishReason, // 'complete', 'length', 'tool', etc.
-        usage, // token usage statistics
-        reasoningDetails, // additional context about the agent's decisions
-      }) => {
-        console.log("Stream complete:", {
-          totalSteps: steps.length,
-          reasoningDetails,
-          finishReason,
-          usage,
-        });
       },
     });
 
@@ -86,9 +69,8 @@ export class ChatService {
 
   async getChatMessages(userId: string, threadId: string) {
     const messages = await memory.query({
-      resourceId: userId,
       threadId,
-      // TODO: Add pagination
+      resourceId: userId,
     });
 
     return messages;
@@ -97,9 +79,9 @@ export class ChatService {
   async getChatsDrizzle(userId: string) {
     const chats = await db
       .select()
-      .from(mastraSchema.mastraThreads)
-      .where(eq(mastraSchema.mastraThreads.resourceId, userId))
-      .orderBy(desc(mastraSchema.mastraThreads.createdAt));
+      .from(mastraThreads)
+      .where(eq(mastraThreads.resourceId, userId))
+      .orderBy(desc(mastraThreads.createdAt));
 
     return chats;
   }
@@ -107,7 +89,7 @@ export class ChatService {
   async renameChat(userId: string, threadId: string, title: string) {
     const now = new Date().toISOString();
     const updated = await db
-      .update(mastraSchema.mastraThreads)
+      .update(mastraThreads)
       .set({
         title,
         updatedAt: now,
@@ -115,8 +97,8 @@ export class ChatService {
       })
       .where(
         and(
-          eq(mastraSchema.mastraThreads.id, threadId),
-          eq(mastraSchema.mastraThreads.resourceId, userId)
+          eq(mastraThreads.id, threadId),
+          eq(mastraThreads.resourceId, userId)
         )
       )
       .returning();
@@ -130,19 +112,19 @@ export class ChatService {
   async deleteChat(userId: string, threadId: string) {
     // Delete related messages first
     await db
-      .delete(mastraSchema.mastraMessages)
-      .where(eq(mastraSchema.mastraMessages.threadId, threadId));
+      .delete(mastraMessages)
+      .where(eq(mastraMessages.threadId, threadId));
 
     // Delete the thread (scoped to user)
     const deleted = await db
-      .delete(mastraSchema.mastraThreads)
+      .delete(mastraThreads)
       .where(
         and(
-          eq(mastraSchema.mastraThreads.id, threadId),
-          eq(mastraSchema.mastraThreads.resourceId, userId)
+          eq(mastraThreads.id, threadId),
+          eq(mastraThreads.resourceId, userId)
         )
       )
-      .returning({ id: mastraSchema.mastraThreads.id });
+      .returning({ id: mastraThreads.id });
 
     if (!deleted.length) {
       throw new HTTPException(404, { message: "Thread not found" });

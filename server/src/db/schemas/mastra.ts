@@ -125,12 +125,3 @@ export const mastraEvals = pgTable("mastra_evals", {
   createdAtZ: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
 });
 
-export default {
-  mastraScorers,
-  mastraThreads,
-  mastraWorkflowSnapshot,
-  mastraTraces,
-  mastraMessages,
-  mastraResources,
-  mastraEvals,
-};

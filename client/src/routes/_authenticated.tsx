@@ -26,20 +26,22 @@ export const Route = createFileRoute("/_authenticated")({
     }
   },
   component: () => {
-    useEffect(() => {
-      EventHandler();
-    }, []);
-    return (
-      <SidebarProvider>
-        <div className="relative z-10 flex h-screen w-full overflow-hidden">
-          <SidebarApp variant="inset" collapsible="offcanvas" />
-          <main className="relative flex-1 overflow-hidden min-h-0">
-            <div className="sm:translate-y-4 mr-1 translate- bg-noise border-l sm:border sm:border-chat-border sm:rounded-t-xl backdrop-blur-md overflow-hidden min-h-0 h-full">
-              <Outlet />
-            </div>
-          </main>
-        </div>
-      </SidebarProvider>
-    );
+    return <AuthenticatedLayout />;
   },
 });
+
+const AuthenticatedLayout = () => {
+  EventHandler();
+  return (
+    <SidebarProvider>
+      <div className="relative z-10 flex h-screen w-full overflow-hidden">
+        <SidebarApp variant="inset" collapsible="offcanvas" />
+        <main className="relative flex-1 overflow-hidden min-h-0">
+          <div className="sm:translate-y-4 mr-1 translate- bg-noise border-l sm:border sm:border-chat-border sm:rounded-t-xl backdrop-blur-md overflow-hidden min-h-0 h-full">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
+  );
+};

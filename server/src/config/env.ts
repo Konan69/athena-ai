@@ -28,13 +28,11 @@ function getRuntimeEnv() {
 export const env = createEnv({
   server: {
     PORT: z.string().default("8080"),
-    MASTRA_PORT: z.string().default("4000"),
+    MASTRA_URL: z.string().url(),
     DATABASE_URL: z.string().url(),
     CLIENT_URL: z.string().url(),
     OPENAI_API_KEY: z.string().min(1),
     NODE_ENV: z.enum(["development", "production"]),
-    EXA_API_KEY: z.string().min(1).optional(),
-    BRAVE_API_KEY: z.string().min(1).optional(),
     BETTER_AUTH_SECRET: z.string().min(1),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
@@ -43,9 +41,6 @@ export const env = createEnv({
     CLOUDFLARE_SECRET_KEY: z.string().min(1),
     S3_API_URL: z.string().url(),
     S3_BUCKET_NAME: z.string().min(1),
-    WEB_SEARCH_PROVIDER: z
-      .enum(["exa", "brave"])
-      .describe("The web search provider to use"),
     REDIS_URL: z.string().min(1),
   },
   runtimeEnv: getRuntimeEnv(),

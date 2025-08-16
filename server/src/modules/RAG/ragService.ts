@@ -1,7 +1,7 @@
 import { embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { MDocument } from "@mastra/rag";
-import { getS3Client, vectorStore } from "@/src/config/storage";
+import { ChunkParams, MDocument } from "@mastra/rag";
+import { s3Client, vectorStore } from "@/src/config/storage";
 import { jobCompletedEvent, jobFailedEvent, jobProgressEvent, jobStartedEvent } from "@/src/modules/RAG/events";
 import { EventService } from "@/src/modules/events/event.service";
 import { Effect } from "effect";
@@ -22,7 +22,7 @@ class RAGService {
 	private events: EventService;
 
 	constructor() {
-		this.s3 = getS3Client();
+		this.s3 = s3Client;
 		this.vectorStore = vectorStore;
 		this.events = EventService.instance;
 	}
@@ -67,11 +67,9 @@ class RAGService {
 
 			// 5) Chunk
 			const doc = this.createMDocument(extractorType, text);
-			const chunks = await doc.chunk({
-				strategy: extractorType === "markdown" ? "markdown" : extractorType === "html" ? "html" : extractorType === "json" ? "json" : "recursive",
-				maxSize: 1200,  // ~300 tokens worth of characters
-				overlap: 150, // ~40 tokens worth of characters
-			});
+			const chunks = await doc.chunk(this.getChunkingParams(extractorType),
+
+			);
 
 			// 6) Embeddings
 			await this.publishProgress({ userId, jobId, stage: "embedding", currentStep: 2, totalSteps: 3, percent: 50, message: `Generating ${chunks.length} embeddings` });
@@ -102,6 +100,7 @@ class RAGService {
 				},
 				catch: (e) => { throw e as Error; }
 			}));
+			this.disconnect();
 
 		} catch (error) {
 			// Fail job gracefully
@@ -231,6 +230,28 @@ class RAGService {
 			percent,
 			message,
 		}));
+	}
+
+	async disconnect(): Promise<void> {
+		await this.events.disconnect();
+	}
+
+	private getChunkingParams(type: SupportedExtractor): ChunkParams {
+		const baseParams = { maxSize: 1200, overlap: 150 };
+
+		switch (type) {
+			case "markdown":
+				return { strategy: "markdown" as const, ...baseParams };
+			case "json":
+				return { strategy: "json" as const, ...baseParams };
+			case "html":
+				return {
+					strategy: "html" as const, ...baseParams, headers:
+						[["h1", "h6"], ["div", "div"], ["p", "p"], ["article", "article"], ["section", "section"]]
+				};
+			default:
+				return { strategy: "recursive" as const, ...baseParams };
+		}
 	}
 }
 

@@ -1,8 +1,13 @@
+import { MastraClient } from "@mastra/client-js";
+import { env } from "./env";
+
+const controller = new AbortController();
+
 import { Memory } from "@mastra/memory";
 import { PgVector } from "@mastra/pg";
-import { env } from "./env";
+
 import { openai } from "@ai-sdk/openai";
-import { sharedPgStore } from "./storage";
+import { pg } from "./storage";
 
 /**
  * Shared Memory instance for AI agents.
@@ -13,24 +18,21 @@ import { sharedPgStore } from "./storage";
  * based on the initial user message.
  */
 export const memory = new Memory({
-  storage: sharedPgStore,
-  options: {
-    lastMessages: 12,
-    threads: {
-      generateTitle: {
-        model: openai("gpt-4o-mini"),
-        instructions:
-          "Generate a concise title based on the initial user message.",
-      },
-    },
-  },
+	storage: pg,
+	options: {
+		lastMessages: 12,
+		threads: {
+			generateTitle: {
+				model: openai("gpt-4o-mini"),
+				instructions:
+					"Generate a concise title based on the initial user message.",
+			},
+		},
+	},
 });
 
-export const vectorStore = new PgVector({
-  connectionString: env.DATABASE_URL,
+export const mastra = new MastraClient({
+	baseUrl: env.MASTRA_URL, //TODO: Fix in prod
+	abortSignal: controller.signal,
 });
 
-export default {
-  memory,
-  vectorStore,
-};

@@ -33,6 +33,10 @@ export class RedisService {
 	makeJobChannel(jobId: string): string {
 		return `job:${jobId}`;
 	}
+
+	async disconnect(): Promise<void> {
+		await Promise.all([this._publisher.quit(), this._subscriber.quit()]);
+	}
 }
 
 

@@ -49,6 +49,10 @@ export class EventService implements IEventService {
 		};
 	}
 
+	async disconnect(): Promise<void> {
+		await this.redis.disconnect();
+	}
+
 }
 
 export default EventService;

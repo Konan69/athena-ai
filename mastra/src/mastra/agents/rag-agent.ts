@@ -1,7 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
-import { LibSQLStore } from "@mastra/libsql";
 
 export const ragAgent = new Agent({
   name: "RAG Agent",
