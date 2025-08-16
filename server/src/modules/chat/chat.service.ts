@@ -72,7 +72,6 @@ export class ChatService {
       threadId,
       resourceId: userId,
     });
-
     return messages;
   }
 

@@ -21,10 +21,6 @@ export const queryClient = new QueryClient({
 export const trpc = createTRPCOptionsProxy<AppRouter>({
   client: createTRPCClient({
     links: [
-      httpSubscriptionLink({
-        url: env.VITE_API_BASE_URL + "/trpc",
-        transformer: superjson,
-      }),
       httpBatchLink({
         url: env.VITE_API_BASE_URL + "/trpc",
         transformer: superjson,
@@ -34,6 +30,10 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
             credentials: "include",
           });
         },
+      }),
+      httpSubscriptionLink({
+        url: env.VITE_API_BASE_URL + "/trpc",
+        transformer: superjson,
       }),
     ],
   }),
