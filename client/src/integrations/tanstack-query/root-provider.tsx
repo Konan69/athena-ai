@@ -4,6 +4,8 @@ import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import superjson from "superjson";
 import {
   createTRPCClient,
+  loggerLink,
+  splitLink,
   httpBatchLink,
   httpSubscriptionLink,
 } from "@trpc/client";
@@ -21,19 +23,23 @@ export const queryClient = new QueryClient({
 export const trpc = createTRPCOptionsProxy<AppRouter>({
   client: createTRPCClient({
     links: [
-      httpBatchLink({
-        url: env.VITE_API_BASE_URL + "/trpc",
-        transformer: superjson,
-        fetch(url, options) {
-          return fetch(url, {
-            ...options,
-            credentials: "include",
-          });
-        },
-      }),
-      httpSubscriptionLink({
-        url: env.VITE_API_BASE_URL + "/trpc",
-        transformer: superjson,
+      loggerLink(),
+      splitLink({
+        condition: (op) => op.type === "subscription",
+        true: httpSubscriptionLink({
+          url: env.VITE_API_BASE_URL + "/trpc",
+          transformer: superjson,
+        }),
+        false: httpBatchLink({
+          url: env.VITE_API_BASE_URL + "/trpc",
+          transformer: superjson,
+          fetch(url, options) {
+            return fetch(url, {
+              ...options,
+              credentials: "include",
+            });
+          },
+        }),
       }),
     ],
   }),

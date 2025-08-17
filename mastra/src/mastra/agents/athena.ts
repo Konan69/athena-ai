@@ -7,8 +7,12 @@ import { athenaPrompt } from "../lib/factory";
 
 export const athenaAI = new Agent({
   name: "Athena AI",
-  instructions: athenaPrompt,
+  instructions: ({ runtimeContext }) => {
+    console.log("runtimeContext", runtimeContext);
+    return athenaPrompt;
+  },
   model: openai("gpt-4o"),
+
   tools: { webSearchTool },
   memory,
 });

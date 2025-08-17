@@ -30,6 +30,7 @@
     "@hono/trpc-server": "^0.4.0",
     "@hono/zod-validator": "^0.7.2",
     "@mastra/client-js": "^0.10.21",
+    "@mastra/core": "0.13.2",
     "@mastra/memory": "^0.12.2",
     "@mastra/pg": "^0.14.0",
     "@mastra/rag": "^1.0.8",

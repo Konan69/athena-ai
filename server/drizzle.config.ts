@@ -3,11 +3,13 @@ import { env } from "./src/config/env";
 
 export default defineConfig({
   out: "./src/db/migrations",
-  schema: "./src/db/schemas",
+  schema: "./src/db/schemas/app.ts",
   dialect: "postgresql",
   dbCredentials: {
     url: env.DATABASE_URL,
   },
   verbose: true,
-  // strict: true,
+  schemaFilter: ["public"],
+  tablesFilter: ["!mastra_*"],
+  strict: true,
 });

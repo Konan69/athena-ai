@@ -1,11 +1,7 @@
 import { MastraClient } from "@mastra/client-js";
 import { env } from "./env";
-
 const controller = new AbortController();
-
 import { Memory } from "@mastra/memory";
-import { PgVector } from "@mastra/pg";
-
 import { openai } from "@ai-sdk/openai";
 import { pg } from "./storage";
 
@@ -20,7 +16,7 @@ import { pg } from "./storage";
 export const memory = new Memory({
 	storage: pg,
 	options: {
-		lastMessages: 12,
+		lastMessages: 18,
 		threads: {
 			generateTitle: {
 				model: openai("gpt-4o-mini"),

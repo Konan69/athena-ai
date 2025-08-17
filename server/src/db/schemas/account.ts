@@ -30,4 +30,10 @@ export const account = pgTable(
   ]
 );
 
-export default account;
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
+  }),
+}));
+

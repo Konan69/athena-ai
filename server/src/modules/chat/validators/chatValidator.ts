@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { MastraRuntimeContext } from "../../../types";
+import { RuntimeContext } from "@mastra/core/di";
 
 export const chatMessageSchema = z.object({
   role: z.enum(["system", "user", "assistant"]),
@@ -25,4 +27,6 @@ export const chatRequestSchema = z.object({
 });
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
-export type ChatRequest = z.infer<typeof chatRequestSchema>;
+export type ChatRequest = z.infer<typeof chatRequestSchema> & {
+  runtimeContext: RuntimeContext<MastraRuntimeContext>
+};

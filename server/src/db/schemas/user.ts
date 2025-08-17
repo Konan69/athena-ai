@@ -4,7 +4,12 @@ import {
   boolean,
   timestamp,
   uniqueIndex,
+  foreignKey,
 } from "drizzle-orm/pg-core";
+import { session } from "./session";
+import { account } from "./account";
+import { library } from "./library";
+import { relations } from "drizzle-orm";
 
 export const user = pgTable(
   "user",
@@ -25,4 +30,12 @@ export const user = pgTable(
   ]
 );
 
-export default user;
+export const userRelations = relations(user, ({ one, many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+  library: one(library, {
+    fields: [user.id],
+    references: [library.userId],
+  }),
+}));
+

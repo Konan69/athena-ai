@@ -14,6 +14,7 @@ import { JsonExtractor } from "@/src/modules/RAG/strategies/jsonExtractor";
 import { TextExtractor } from "@/src/modules/RAG/strategies/textExtractor";
 import { MarkdownExtractor } from "@/src/modules/RAG/strategies/markdownExtractor";
 import { HtmlExtractor } from "@/src/modules/RAG/strategies/htmlExtractor";
+import { getIndexName } from "@/src/lib/utils";
 
 
 class RAGService {
@@ -27,11 +28,9 @@ class RAGService {
 		this.events = EventService.instance;
 	}
 
-	// TODO: fix metadata and metadata filtering to the document 
+	// TODO: fix metadata and metadata filtering to the document using runtimeContext
 	// TODO: add organization tenancy
 	// TODO: add doc embedding updates for new versions of the same doc or text based docs
-
-
 
 	async train(input: TrainingRequest) {
 		const startTime = performance.now();
@@ -40,7 +39,7 @@ class RAGService {
 			const jobId = item.id;
 			const objectKey = item.uploadLink;
 
-			// 2) Mark job started and publish event
+			console.log("[RAGService.train] Step 1: Mark job started and publish event");
 			const started = jobStartedEvent.parse({
 				type: "job_started",
 				jobId,
@@ -57,36 +56,35 @@ class RAGService {
 				catch: (e) => { throw e as Error; }
 			}));
 
-			// 3) Download from S3 and detect content type
+			console.log("[RAGService.train] Step 2: Download from S3 and detect content type");
 			const { buffer: docBuffer, contentType } = await this.downloadFromS3(objectKey);
 
-			// 4) Extract text using strategy based on objectKey/optional override
+			console.log("[RAGService.train] Step 3: Extract text using strategy based on objectKey/optional override");
 			await this.publishProgress({ userId, jobId, stage: "chunking", currentStep: 1, totalSteps: 3, percent: 10, message: "Extracting and chunking document" });
 			const extractorType = this.deriveExtractorType(objectKey, input.forceExtractor, contentType);
 			const text = await this.extractText(extractorType, docBuffer);
 
-			// 5) Chunk
+			console.log("[RAGService.train] Step 4: Chunk document");
 			const doc = this.createMDocument(extractorType, text);
-			const chunks = await doc.chunk(this.getChunkingParams(extractorType),
+			const chunks = await doc.chunk(this.getChunkingParams(extractorType));
 
-			);
-
-			// 6) Embeddings
+			console.log("[RAGService.train] Step 5: Generate embeddings");
 			await this.publishProgress({ userId, jobId, stage: "embedding", currentStep: 2, totalSteps: 3, percent: 50, message: `Generating ${chunks.length} embeddings` });
-			const { embeddings } = await embedMany({
+			const { embeddings, usage } = await embedMany({
 				values: chunks.map((chunk) => chunk.text),
 				model: openai.embedding("text-embedding-3-small", { dimensions: 512 }),
 			});
 
-			// 7) Index
+			console.log("[RAGService.train] Step 6: Index vectors");
+			console.log("[RAGService.train] Step 6: Index vectors", usage);
 			await this.publishProgress({ userId, jobId, stage: "indexing", currentStep: 3, totalSteps: 3, percent: 80, message: "Indexing vectors" });
 			await this.vectorStore.upsert({
-				indexName: `user_${userId}`,
+				indexName: getIndexName(userId),
 				vectors: embeddings,
 				metadata: chunks.map((c) => ({ text: c.text, jobId, source: objectKey })),
 			});
 
-			// 8) Complete
+			console.log("[RAGService.train] Step 7: Mark job complete and publish event");
 			await Effect.runPromise(Effect.tryPromise({
 				try: async () => {
 					await db.update(libraryItem).set({ status: "ready" }).where(eq(libraryItem.id, jobId));
@@ -103,6 +101,7 @@ class RAGService {
 			this.disconnect();
 
 		} catch (error) {
+			console.log("[RAGService.train] Step ERROR: Job failed", error);
 			// Fail job gracefully
 			const err = error as Error;
 			try { // TODO: type errors and handle with effects

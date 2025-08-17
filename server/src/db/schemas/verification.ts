@@ -9,4 +9,3 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp({ precision: 3, mode: "string" }),
 });
 
-export default verification;

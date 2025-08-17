@@ -50,25 +50,19 @@ export const mastraThreads = pgTable("mastra_threads", {
   updatedAtZ: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
 });
 
-export const mastraWorkflowSnapshot = pgTable(
-  "mastra_workflow_snapshot",
-  {
-    workflowName: text("workflow_name").notNull(),
-    runId: text("run_id").notNull(),
-    resourceId: text(),
-    snapshot: text().notNull(),
-    createdAt: timestamp({ mode: "string" }).notNull(),
-    updatedAt: timestamp({ mode: "string" }).notNull(),
-    createdAtZ: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
-    updatedAtZ: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
-  },
-  (table) => [
-    unique("mastra_workflow_snapshot_workflow_name_run_id_key").on(
-      table.workflowName,
-      table.runId
-    ),
-  ]
-);
+export const mastraWorkflowSnapshot = pgTable("mastra_workflow_snapshot", {
+  workflowName: text("workflow_name").notNull(),
+  runId: text("run_id").notNull(),
+  resourceId: text(),
+  snapshot: text().notNull(),
+  createdAt: timestamp({ mode: 'string' }).notNull(),
+  updatedAt: timestamp({ mode: 'string' }).notNull(),
+  createdAtZ: timestamp({ withTimezone: true, mode: 'string' }).defaultNow(),
+  updatedAtZ: timestamp({ withTimezone: true, mode: 'string' }).defaultNow(),
+}, (table) => [
+  unique("mastra_workflow_snapshot_workflow_name_run_id_key").on(table.workflowName, table.runId),
+  unique("public_mastra_workflow_snapshot_workflow_name_run_id_key").on(table.workflowName, table.runId),
+]);
 
 export const mastraTraces = pgTable("mastra_traces", {
   id: text().primaryKey().notNull(),

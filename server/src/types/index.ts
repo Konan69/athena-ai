@@ -2,8 +2,8 @@ import type { auth } from "../modules/auth";
 
 export interface APP {
   Variables: {
-    user: typeof auth.$Infer.Session.user | null;
-    session: typeof auth.$Infer.Session.session | null;
+    user: typeof auth.$Infer.Session.user
+    session: typeof auth.$Infer.Session.session
   };
 }
 
@@ -47,5 +47,12 @@ export {
   jobCompletedEvent,
   jobFailedEvent,
 } from "../modules/RAG/events";
+
+export type MastraRuntimeContext = {
+  resourceId: string;
+  sessionId?: string;
+  indexName: string;
+  filter: string;
+};
 
 export type { LibraryItem } from "./library";
