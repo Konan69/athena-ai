@@ -2,20 +2,15 @@ import Redis from "ioredis";
 import { env } from "./env";
 
 export class RedisService {
-	private static _instance: RedisService | null = null;
+
 	private _publisher: Redis;
+	private _reader: Redis
 	private _subscriber: Redis;
 
-	private constructor(url: string) {
+	constructor(url: string) {
 		this._publisher = new Redis(url);
 		this._subscriber = new Redis(url);
-	}
-
-	static get instance(): RedisService {
-		if (!this._instance) {
-			this._instance = new RedisService(env.REDIS_URL);
-		}
-		return this._instance;
+		this._reader = new Redis(url);
 	}
 
 	get publisher(): Redis {
@@ -26,6 +21,18 @@ export class RedisService {
 		return this._subscriber;
 	}
 
+	get reader(): Redis {
+		return this._reader;
+	}
+
+	makeVectorIndexCacheKey(indexName: string): string {
+		return `vector_index_exists:${indexName}`;
+	}
+
+	async setVectorIndexCacheKey(cacheKey: string): Promise<void> {
+		await this._publisher.set(cacheKey, 'true');
+	}
+
 	makeUserChannel(userId: string): string {
 		return `user:${userId}:training`;
 	}
@@ -34,9 +41,6 @@ export class RedisService {
 		return `job:${jobId}`;
 	}
 
-	async disconnect(): Promise<void> {
-		await Promise.all([this._publisher.quit(), this._subscriber.quit()]);
-	}
 }
 
-
+export const redisService = new RedisService(env.REDIS_URL);

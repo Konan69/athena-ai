@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import InputModal from "@/components/input-modal";
 import { useQueryErrorResetBoundary } from "@tanstack/react-query";
+import { formatFileSize } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/library")({
   loader: async ({ context }) => {
@@ -218,7 +219,7 @@ export function LibraryPage() {
                 <CardContent>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>
-                      {obj.title} • {obj.fileSize}
+                      {obj.title} • {formatFileSize(obj.fileSize)}
                     </span>
                     <span>
                       Created{" "}

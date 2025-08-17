@@ -1,7 +1,7 @@
 import { requestId } from "hono/request-id";
 import { cors } from "hono/cors";
 import { trpcServer } from "@hono/trpc-server";
-import { logger } from "./config/logger";
+import { logger, handleTRPCError } from "./config/logger";
 import { env } from "./config/env";
 import { errorHandler } from "./middleware/error.middleware";
 import { auth } from "./modules/auth";
@@ -34,6 +34,7 @@ export const app = createApp()
     return auth.handler(c.req.raw);
   })
   .use(authMiddleware);
+
 // register authenticated routes
 const routes = modules.map((m) => {
   if (m.routes) {
@@ -48,9 +49,10 @@ app
     trpcServer({
       router: appRouter,
       createContext: createTRPCContext,
+      onError: handleTRPCError,
     })
   )
-  .use(errorHandler);
+  .onError(errorHandler);
 
 export default {
   fetch: app.fetch,

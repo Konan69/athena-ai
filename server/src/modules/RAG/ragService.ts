@@ -14,6 +14,8 @@ import { JsonExtractor } from "@/src/modules/RAG/strategies/jsonExtractor";
 import { TextExtractor } from "@/src/modules/RAG/strategies/textExtractor";
 import { MarkdownExtractor } from "@/src/modules/RAG/strategies/markdownExtractor";
 import { HtmlExtractor } from "@/src/modules/RAG/strategies/htmlExtractor";
+import { RAGconstants } from "@/src/lib/constants";
+import { redisService } from "@/src/config/redis";
 import { getIndexName } from "@/src/lib/utils";
 
 
@@ -21,23 +23,34 @@ class RAGService {
 	private s3;
 	private vectorStore;
 	private events: EventService;
+	private redis
+	private constants
 
 	constructor() {
 		this.s3 = s3Client;
+		this.constants = RAGconstants
 		this.vectorStore = vectorStore;
 		this.events = EventService.instance;
+		this.redis = redisService;
 	}
 
 	// TODO: fix metadata and metadata filtering to the document using runtimeContext
 	// TODO: add organization tenancy
 	// TODO: add doc embedding updates for new versions of the same doc or text based docs
 
+
+	// TODO: Replace this base method with a robust queue implementation for reliable background job processing.
+	// The queue logic should be abstracted behind a generic message broker interface to allow for future portability (e.g., switching to RabbitMQ, SQS, etc.).
+	// This interface will define methods for enqueuing, processing, and managing jobs, and the BullMQ implementation will be the v0.
+	// The rest of the RAG service will interact only with the interface, not the concrete BullMQ implementation.
+	// This approach ensures reliability, scalability, and flexibility for future infrastructure changes.
 	async train(input: TrainingRequest) {
 		const startTime = performance.now();
 		try {
 			const { userId, item } = input;
 			const jobId = item.id;
 			const objectKey = item.uploadLink;
+			const title = item.title;
 
 			console.log("[RAGService.train] Step 1: Mark job started and publish event");
 			const started = jobStartedEvent.parse({
@@ -72,16 +85,24 @@ class RAGService {
 			await this.publishProgress({ userId, jobId, stage: "embedding", currentStep: 2, totalSteps: 3, percent: 50, message: `Generating ${chunks.length} embeddings` });
 			const { embeddings, usage } = await embedMany({
 				values: chunks.map((chunk) => chunk.text),
-				model: openai.embedding("text-embedding-3-small", { dimensions: 512 }),
+				model: openai.embedding("text-embedding-3-small", { dimensions: this.constants.dimensions }),
 			});
 
 			console.log("[RAGService.train] Step 6: Index vectors");
-			console.log("[RAGService.train] Step 6: Index vectors", usage);
 			await this.publishProgress({ userId, jobId, stage: "indexing", currentStep: 3, totalSteps: 3, percent: 80, message: "Indexing vectors" });
+			const indexName = await this.ensureIndexExists(userId);
+			console.log("[RAGService.train] Step 6: Index vectors", usage);
+
 			await this.vectorStore.upsert({
-				indexName: getIndexName(userId),
+				indexName,
 				vectors: embeddings,
-				metadata: chunks.map((c) => ({ text: c.text, jobId, source: objectKey })),
+				metadata: chunks.map((c) => (
+					{
+						text: c.text, itemId: jobId,
+						source: objectKey,
+						title,
+						tags: item.tags,
+					})),
 			});
 
 			console.log("[RAGService.train] Step 7: Mark job complete and publish event");
@@ -98,7 +119,6 @@ class RAGService {
 				},
 				catch: (e) => { throw e as Error; }
 			}));
-			this.disconnect();
 
 		} catch (error) {
 			console.log("[RAGService.train] Step ERROR: Job failed", error);
@@ -231,8 +251,32 @@ class RAGService {
 		}));
 	}
 
-	async disconnect(): Promise<void> {
-		await this.events.disconnect();
+	async ensureIndexExists(userId: string) {
+		const indexName = getIndexName(userId);
+
+		const cacheKey = this.redis.makeVectorIndexCacheKey(indexName)
+
+		// Check Redis cache first
+		const cached = await this.redis.reader.get(cacheKey);
+		if (cached === 'true') {
+			return indexName;
+		}
+
+		// Check if index exists first
+		const indexes = await this.vectorStore.listIndexes();
+		const exists = indexes.some(index => index === indexName);
+
+		if (!exists) {
+			await this.vectorStore.createIndex({
+				indexName,
+				dimension: this.constants.dimensions,
+				metric: this.constants.metric,
+			});
+		}
+
+		await this.redis.setVectorIndexCacheKey(cacheKey)
+
+		return indexName;
 	}
 
 	private getChunkingParams(type: SupportedExtractor): ChunkParams {

@@ -6,6 +6,7 @@ import { athenaAI } from "./agents/athena";
 import { researchWorkflow } from "./workflows/research-workflow";
 import { env } from "../config/env";
 import { sharedPgStore } from "../config/storage";
+import { ragAgent } from "./agents/rag-agent";
 
 export const mcp = new MCPClient({
   servers: {
@@ -27,6 +28,7 @@ export const mastra = new Mastra({
   },
   agents: {
     athenaAI,
+    ragAgent,
     researchAgent,
   },
   storage: sharedPgStore,

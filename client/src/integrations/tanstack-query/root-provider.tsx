@@ -29,6 +29,11 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
         true: httpSubscriptionLink({
           url: env.VITE_API_BASE_URL + "/trpc",
           transformer: superjson,
+          eventSourceOptions() {
+            return {
+              withCredentials: true,
+            };
+          },
         }),
         false: httpBatchLink({
           url: env.VITE_API_BASE_URL + "/trpc",

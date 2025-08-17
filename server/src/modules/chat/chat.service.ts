@@ -9,7 +9,7 @@ import { HTTPException } from "hono/http-exception";
 
 export class ChatService {
   async processChat(request: ChatRequest) {
-    const { message, threadId, resourceId, extras, runtimeContext } = request;
+    const { message, threadId, resourceId, extras, runtimeContext, agentId } = request;
 
     const effectiveMessage = composeUserMessage(message, extras);
 
@@ -19,11 +19,12 @@ export class ChatService {
       throw new HTTPException(400, { message: "Missing message content" });
     }
 
-    // Get the agent from Mastra
-    const agent = mastra.getAgent("athenaAI");
+    // Get the agent from Mastra using the requested agentId
+    const agent = mastra.getAgent(agentId);
     if (!agent) {
-      throw new HTTPException(500, { message: "Agent not found" });
+      throw new HTTPException(500, { message: `Agent '${agentId}' not found` });
     }
+    //TODO: switching agents remove memory
 
     // Process with memory using the single message content
     const stream = await agent.stream({

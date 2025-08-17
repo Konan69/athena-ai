@@ -1,5 +1,5 @@
 import type { TrainingEvent } from "@/src/modules/RAG/events";
-import { RedisService } from "@/src/config/redis";
+import { redisService, RedisService } from "@/src/config/redis";
 
 export interface IEventService {
 	publishTrainingEvent(event: TrainingEvent): Promise<void>;
@@ -16,7 +16,7 @@ export class EventService implements IEventService {
 
 	static get instance(): EventService {
 		if (!this._instance) {
-			this._instance = new EventService(RedisService.instance);
+			this._instance = new EventService(redisService);
 		}
 		return this._instance;
 	}
@@ -24,11 +24,8 @@ export class EventService implements IEventService {
 	async publishTrainingEvent(event: TrainingEvent): Promise<void> {
 		const payload = JSON.stringify(event);
 		const userChannel = this.redis.makeUserChannel(event.userId);
-		const jobChannel = this.redis.makeJobChannel(event.jobId);
-		await Promise.all([ // TODO: use effects instead of promises
-			this.redis.publisher.publish(userChannel, payload),
-			this.redis.publisher.publish(jobChannel, payload),
-		]);
+		// TODO: use effects instead of promises
+		await this.redis.publisher.publish(userChannel, payload)
 	}
 
 	async subscribeUser(
@@ -49,9 +46,6 @@ export class EventService implements IEventService {
 		};
 	}
 
-	async disconnect(): Promise<void> {
-		await this.redis.disconnect();
-	}
 
 }
 

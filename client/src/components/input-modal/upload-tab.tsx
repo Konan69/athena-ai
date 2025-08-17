@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn, formatFileSize } from "@/lib/utils";
 import { Upload, X, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -126,7 +126,7 @@ export function UploadTab({
                   {file.name}
                 </div>
                 <div className="text-xs text-neutral-600 dark:text-neutral-400">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                  {formatFileSize(file.size)}
                 </div>
               </div>
             </div>

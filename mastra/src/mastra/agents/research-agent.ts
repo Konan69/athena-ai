@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
 import { webSearchTool } from "../tools/web-search-tool";
+import { memory } from "../../config/memory";
 
 export const researchAgent = new Agent({
   name: "Research Agent",
@@ -23,6 +24,7 @@ export const researchAgent = new Agent({
     
     Always be thorough but concise in your responses.
   `,
+  memory,
   model: openai("gpt-4o"),
   tools: { webSearchTool },
 });

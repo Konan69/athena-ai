@@ -6,7 +6,7 @@ import db from "../../db";
 
 import { createAuthMiddleware } from "better-auth/api";
 import { library } from "@/src/db/schemas";
-import { RedisService } from "@/src/config/redis";
+import { redisService, RedisService } from "@/src/config/redis";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -16,19 +16,18 @@ export const auth = betterAuth({
   appName: "Athena AI",
   trustedOrigins: ["http://localhost:3000", env.CLIENT_URL],
   secret: env.BETTER_AUTH_SECRET,
-  // TODO: REVIEW THIS
-  // secondaryStorage: {
-  //   get: async (key: string) => {
-  //     const value = await RedisService.instance.publisher.get(key);
-  //     return value ? JSON.parse(value) : null;
-  //   },
-  //   set: async (key: string, value: any) => {
-  //     await RedisService.instance.publisher.set(key, JSON.stringify(value));
-  //   },
-  //   delete: async (key: string) => {
-  //     await RedisService.instance.publisher.del(key);
-  //   },
-  // },
+  secondaryStorage: {
+    get: async (key: string) => {
+      const value = await redisService.reader.get(key);
+      return value
+    },
+    set: async (key: string, value: string, ttl?: number) => {
+      await redisService.publisher.set(key, value);
+    },
+    delete: async (key: string) => {
+      await redisService.publisher.del(key);
+    },
+  },
   socialProviders: {
     google: {
       clientId: env.GOOGLE_CLIENT_ID,

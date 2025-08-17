@@ -24,6 +24,16 @@ export const createTRPCContext = (opts: any, c: Context<APP>) => {
 };
 export const t = initTRPC.context<TRPCContext>().create({
   transformer: superjson,
+  sse: {
+    ping: {
+      enabled: true,
+      // 20 seconds
+      intervalMs: 15_000,
+    },
+    client: {
+      reconnectAfterInactivityMs: 40_000,
+    },
+  },
 });
 export const publicProcedure = t.procedure;
 

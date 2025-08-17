@@ -22,6 +22,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { type AgentOption, AVAILABLE_AGENTS } from "@/types/agents";
+import { useAgentStore } from "@/store/agent.store";
 
 // Replace Math.random with nanoid
 // import { nanoid } from "nanoid";
@@ -45,51 +47,29 @@ export interface PastedContent {
   wordCount: number;
 }
 
-export interface ModelOption {
-  id: string;
-  name: string;
-  description: string;
-  badge?: string;
-}
+// Using AgentOption from types/agents.ts instead
 
 interface ChatInputProps {
   onSendMessage?: (
     message: string,
     files: FileWithPreview[],
-    pastedContent: PastedContent[]
+    pastedContent: PastedContent[],
+    selectedAgent: string
   ) => void;
   disabled?: boolean;
   placeholder?: string;
   maxFiles?: number;
   maxFileSize?: number; // in bytes
   acceptedFileTypes?: string[];
-  models?: ModelOption[];
-  defaultModel?: string;
-  onModelChange?: (modelId: string) => void;
+  agents?: AgentOption[];
+  onAgentChange?: (agentId: string) => void;
 }
 
 // Constants
 const MAX_FILES = 10;
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const PASTE_THRESHOLD = 200; // characters threshold for showing as pasted content
-const DEFAULT_MODELS_INTERNAL: ModelOption[] = [
-  {
-    id: "claude-sonnet-4",
-    name: "Claude Sonnet 4",
-    description: "Balanced model",
-    badge: "Latest",
-  },
-  {
-    id: "claude-opus-3.5",
-    name: "Claude Opus 3.5",
-    description: "Highest intelligence",
-  },
-  {
-    id: "claude-haiku-3",
-    name: "Claude Haiku 3",
-    description: "Fastest responses",
-  },
-];
+const DEFAULT_AGENTS_INTERNAL: AgentOption[] = AVAILABLE_AGENTS;
 
 // File type helpers
 const getFileIcon = (type: string) => {
@@ -336,15 +316,15 @@ const PastedContentCard: React.FC<{
   );
 };
 
-// Model Selector Component
-const ModelSelectorDropdown: React.FC<{
-  models: ModelOption[];
-  selectedModel: string;
-  onModelChange: (modelId: string) => void;
-}> = ({ models, selectedModel, onModelChange }) => {
+// Agent Selector Component
+const AgentSelectorDropdown: React.FC<{
+  agents: AgentOption[];
+  selectedAgent: string;
+  onAgentChange: (agentId: string) => void;
+}> = ({ agents, selectedAgent, onAgentChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedModelData =
-    models.find((m) => m.id === selectedModel) || models[0];
+  const selectedAgentData =
+    agents.find((a) => a.id === selectedAgent) || agents[0];
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -369,7 +349,7 @@ const ModelSelectorDropdown: React.FC<{
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className="truncate max-w-[150px] sm:max-w-[200px]">
-          {selectedModelData.name}
+          {selectedAgentData.name}
         </span>
         <ChevronDown
           className={cn(
@@ -381,34 +361,34 @@ const ModelSelectorDropdown: React.FC<{
 
       {isOpen && (
         <div className="absolute bottom-full right-0 mb-2 w-72 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-20 p-2">
-          {models.map((model) => (
+          {agents.map((agent) => (
             <button
-              key={model.id}
+              key={agent.id}
               className={cn(
                 "w-full text-left p-2.5 rounded-md hover:bg-zinc-700 transition-colors flex items-center justify-between",
-                model.id === selectedModel && "bg-zinc-700"
+                agent.id === selectedAgent && "bg-zinc-700"
               )}
               onClick={() => {
-                onModelChange(model.id);
+                onAgentChange(agent.id);
                 setIsOpen(false);
               }}
             >
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-zinc-100">
-                    {model.name}
+                    {agent.name}
                   </span>
-                  {model.badge && (
+                  {agent.badge && (
                     <span className="px-1.5 py-0.5 text-xs bg-blue-500/20 text-blue-300 rounded">
-                      {model.badge}
+                      {agent.badge}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  {model.description}
+                  {agent.description}
                 </p>
               </div>
-              {model.id === selectedModel && (
+              {agent.id === selectedAgent && (
                 <Check className="h-4 w-4 text-blue-400 flex-shrink-0" />
               )}
             </button>
@@ -497,17 +477,14 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
   maxFiles = MAX_FILES,
   maxFileSize = MAX_FILE_SIZE,
   acceptedFileTypes,
-  models = DEFAULT_MODELS_INTERNAL,
-  defaultModel,
-  onModelChange,
+  agents = DEFAULT_AGENTS_INTERNAL,
+  onAgentChange,
 }) => {
   const [message, setMessage] = useState("");
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [pastedContent, setPastedContent] = useState<PastedContent[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(
-    defaultModel || models[0]?.id || ""
-  );
+  const { selectedAgent, setSelectedAgent } = useAgentStore();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -700,7 +677,7 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
       return;
     }
 
-    onSendMessage?.(message, files, pastedContent);
+    onSendMessage?.(message, files, pastedContent, selectedAgent);
 
     setMessage("");
     files.forEach((file) => {
@@ -709,14 +686,14 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
     setFiles([]);
     setPastedContent([]);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
-  }, [message, files, pastedContent, disabled, onSendMessage]);
+  }, [message, files, pastedContent, disabled, onSendMessage, selectedAgent]);
 
-  const handleModelChangeInternal = useCallback(
-    (modelId: string) => {
-      setSelectedModel(modelId);
-      onModelChange?.(modelId);
+  const handleAgentChangeInternal = useCallback(
+    (agentId: string) => {
+      setSelectedAgent(agentId);
+      onAgentChange?.(agentId);
     },
-    [onModelChange]
+    [setSelectedAgent, onAgentChange]
   );
 
   const handleKeyDown = useCallback(
@@ -791,11 +768,11 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            {models && models.length > 0 && (
-              <ModelSelectorDropdown
-                models={models}
-                selectedModel={selectedModel}
-                onModelChange={handleModelChangeInternal}
+            {agents && agents.length > 0 && (
+              <AgentSelectorDropdown
+                agents={agents}
+                selectedAgent={selectedAgent}
+                onAgentChange={handleAgentChangeInternal}
               />
             )}
 

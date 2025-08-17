@@ -30,6 +30,7 @@ import {
   type FileWithPreview,
   type PastedContent,
 } from "@/components/claude/claude-input";
+import { AVAILABLE_AGENTS } from "@/types/agents";
 export const Route = createFileRoute("/_authenticated/chat/{-$threadId}")({
   component: ChatPage,
   errorComponent: ({ error, reset }) => {
@@ -89,6 +90,7 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
   const extraPayloadRef = useRef<{
     pastedContents?: string[];
     fileTexts?: { name: string; text: string }[];
+    agentId?: string;
   }>({});
 
   const {
@@ -125,6 +127,7 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
         return {
           message: lastMessage,
           threadId: activeThreadId,
+          agentId: extraPayloadRef.current.agentId,
           extras: {
             pastedContents: extraPayloadRef.current.pastedContents ?? [],
             fileTexts: extraPayloadRef.current.fileTexts ?? [],
@@ -192,7 +195,8 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
   const handleClaudeSend = (
     message: string,
     files: FileWithPreview[],
-    pasted: PastedContent[]
+    pasted: PastedContent[],
+    selectedAgent: string
   ) => {
     const base = message.trim();
 
@@ -209,6 +213,7 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
     extraPayloadRef.current = {
       pastedContents,
       fileTexts,
+      agentId: selectedAgent,
     };
 
     // Only send when there is base text or extras
@@ -325,7 +330,10 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
       </div>
 
       <div className="max-w-2xl mx-auto w-full px-4 mb-6">
-        <ClaudeChatInput onSendMessage={handleClaudeSend} />
+        <ClaudeChatInput
+          onSendMessage={handleClaudeSend}
+          agents={AVAILABLE_AGENTS}
+        />
       </div>
     </div>
   );
