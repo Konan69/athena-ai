@@ -33,8 +33,8 @@ export class RedisService {
 		await this._publisher.set(cacheKey, 'true');
 	}
 
-	makeUserChannel(userId: string): string {
-		return `user:${userId}:training`;
+	makeTrainingChannel(orgId: string): string {
+		return `org:${orgId}:training`;
 	}
 
 	makeJobChannel(jobId: string): string {

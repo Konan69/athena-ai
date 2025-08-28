@@ -9,5 +9,8 @@ export const ragAgent = new Agent({
   instructions: ragPrompt,
   memory,
   model: openai("gpt-4o"),
-  tools: { vectorQueryTool },
+  tools: ({ runtimeContext }) => {
+    console.log("runtimeContext", runtimeContext);
+    return { vectorQueryTool };
+  },
 });

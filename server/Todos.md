@@ -1,2 +1,1 @@
-// add hono rate limiter with cloudflare kv
-add logger
+// add hono rate limiter with redis kv

@@ -1,29 +1,66 @@
 import { create } from "zustand";
 
 interface ChatStore {
+	// Thread readiness state
+	threadReady: Record<string, boolean>; // threadId -> ready state
 	isCreatingAndSending: boolean;
-	pendingMessage: string;
-	newNonce: number;
+	initializedThreads: Record<string, boolean>; // Track which threads we've initialized
 
+	// Actions
+	setThreadReady: (threadId: string, ready: boolean) => void;
 	setIsCreatingAndSending: (isCreating: boolean) => void;
-	setPendingMessage: (message: string) => void;
-	bumpNewNonce: () => void;
-
-	// Reset function to clear problematic state when navigating
-	resetChatState: () => void;
+	resetChatState: (threadId: string) => void;
+	initializeExistingThread: (threadId: string) => boolean; // Returns true if was already ready
 }
 
-export const useChatStore = create<ChatStore>((set) => ({
+export const useChatStore = create<ChatStore>((set, get) => ({
+	threadReady: {},
 	isCreatingAndSending: false,
-	pendingMessage: "",
-	newNonce: 0,
+	initializedThreads: {},
 
-	setIsCreatingAndSending: (isCreating) => set({ isCreatingAndSending: isCreating }),
-	setPendingMessage: (message) => set({ pendingMessage: message }),
-	bumpNewNonce: () => set((s) => ({ newNonce: s.newNonce + 1 })),
+	setThreadReady: (threadId: string, ready: boolean) => set((state) => ({
+		threadReady: {
+			...state.threadReady,
+			[threadId]: ready,
+		},
+	})),
 
-	resetChatState: () => set({
-		isCreatingAndSending: false,
-		pendingMessage: "",
+	setIsCreatingAndSending: (isCreating: boolean) => set({
+		isCreatingAndSending: isCreating,
 	}),
+
+	resetChatState: (threadId: string) => set((state) => ({
+		threadReady: {
+			...state.threadReady,
+			[threadId]: false,
+		},
+		initializedThreads: {
+			...state.initializedThreads,
+			[threadId]: false,
+		},
+		isCreatingAndSending: false,
+	})),
+
+	initializeExistingThread: (threadId: string) => {
+		const state = get();
+
+		// If already initialized, return current ready state
+		if (state.initializedThreads[threadId]) {
+			return state.threadReady[threadId] || false;
+		}
+
+		// Mark as initialized and ready
+		set((prevState) => ({
+			initializedThreads: {
+				...prevState.initializedThreads,
+				[threadId]: true,
+			},
+			threadReady: {
+				...prevState.threadReady,
+				[threadId]: true,
+			},
+		}));
+
+		return true;
+	},
 }));

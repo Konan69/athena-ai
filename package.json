@@ -4,12 +4,13 @@
   "packageManager": "pnpm@10.0.0",
   "scripts": {
     "prepare": "echo 'add husky'",
-    "dev": "turbo dev",
+    "dev": "turbo run dev db:studio --parallel",
     "build": "turbo build",
     "check-types": "turbo check-types",
     "dev:client": "turbo -F @athena-ai/client dev",
     "dev:server": "turbo -F @athena-ai/server dev",
-    "dev:mastra": "turbo -F @athena-ai/mastra dev"
+    "dev:db-studio": "turbo run db:studio --filter=@athena-ai/server",
+    "dev:mastra": "turbo run -F @athena-ai/mastra"
   },
   "devDependencies": {
     "turbo": "^2.5.5"

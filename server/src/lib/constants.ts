@@ -1,6 +1,7 @@
 
 
 export const RAGconstants = {
-	dimensions: 512,
+	indexName: "embeddings",
+	dimensions: 1536,
 	metric: 'cosine' as const
 }

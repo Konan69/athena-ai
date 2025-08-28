@@ -3,6 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoaderFive } from "@/components/ui/loader";
 import { ErrorState } from "@/components/ui/error-state";
+import { useMutation } from "@tanstack/react-query";
 import {
   Conversation,
   ConversationContent,
@@ -14,13 +15,14 @@ import {
   MessageAvatar,
 } from "@/components/ai-elements/message";
 import { useUserStore } from "@/store/user.store";
+import { useChatStore } from "@/store/chat.store";
 import { Response } from "@/components/ai-elements/response";
 import { Actions, Action } from "@/components/ai-elements/actions";
 import { RefreshCcw as RefreshCcwIcon, Copy as CopyIcon } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
 import { env } from "@/config/env";
 import { toast } from "sonner";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { useQueryErrorResetBoundary, useQuery } from "@tanstack/react-query";
 import { trpc, queryClient } from "@/integrations/tanstack-query/root-provider";
 
@@ -31,6 +33,7 @@ import {
   type PastedContent,
 } from "@/components/claude/claude-input";
 import { AVAILABLE_AGENTS } from "@/types/agents";
+import { useSessionStore } from "@/store/session.store";
 export const Route = createFileRoute("/_authenticated/chat/{-$threadId}")({
   component: ChatPage,
   errorComponent: ({ error, reset }) => {
@@ -68,6 +71,7 @@ export const Route = createFileRoute("/_authenticated/chat/{-$threadId}")({
 function ChatPage() {
   const { threadId } = Route.useParams();
   const search = Route.useSearch() as { session?: string };
+
   // Key only for brand-new chats via `session` search param; existing threads keep instance stable
   const chatIdentity = useMemo(
     () => (threadId ? `thread:${threadId}` : `new:${search?.session ?? "0"}`),
@@ -79,12 +83,19 @@ function ChatPage() {
 export function Chat({ threadId }: { threadId: string | undefined }) {
   const router = useRouter();
   const user = useUserStore((s) => s.user);
-
-  const [isCreatingAndSending, setIsCreatingAndSending] = useState(false);
-  const firstMessageSubmittedRef = useRef(false);
+  const chatStore = useChatStore();
 
   const generatedIdRef = useRef<string>(nanoid());
   const effectiveThreadId = threadId ?? generatedIdRef.current;
+
+  // For existing threads, initialize them immediately
+  if (threadId) {
+    chatStore.initializeExistingThread(threadId);
+  }
+
+  // Get thread readiness state from store
+  const threadReady = chatStore.threadReady[effectiveThreadId] || false;
+  const isCreatingAndSending = chatStore.isCreatingAndSending;
 
   const chatSubmitRef = useRef<(() => void) | null>(null);
   const extraPayloadRef = useRef<{
@@ -101,93 +112,108 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
     ...trpc.chat.getChatMessages.queryOptions({
       threadId: effectiveThreadId ?? "",
     }),
-    enabled: !!threadId,
+    enabled: !!threadId && threadReady && !isCreatingAndSending, // Only fetch when thread exists, is ready, and not creating
     placeholderData: (prev) => prev,
+    retry: (failureCount) => {
+      // Retry up to 3 times with exponential backoff to handle race conditions
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 
-  const { messages, input, handleSubmit, status, stop, setInput, append } =
-    useChat({
-      id: effectiveThreadId, // Single ID for both chat session and server thread
-      api: `${env.VITE_API_BASE_URL}/api/chat`,
-      credentials: "include",
-      initialMessages: data?.uiMessages ?? [],
+  const {
+    messages,
+    input,
+    handleSubmit,
+    status,
+    stop,
+    setInput,
+    append,
+    error,
+  } = useChat({
+    id: effectiveThreadId,
+    api: `${env.VITE_API_BASE_URL}/api/chat`,
+    credentials: "include",
+    initialMessages: data?.uiMessages ?? [],
 
-      // Configure to send only the latest message along with threadId and resourceId
-      experimental_prepareRequestBody: (request) => {
-        // Ensure messages array is not empty and get the last message
-        const lastMessage =
-          request.messages.length > 0
-            ? request.messages[request.messages.length - 1]
-            : null;
+    experimental_prepareRequestBody: (request) => {
+      const lastMessage =
+        request.messages.length > 0
+          ? request.messages[request.messages.length - 1]
+          : null;
 
-        // Use the effective thread ID (generated for new chats)
-        const activeThreadId = effectiveThreadId;
+      const activeThreadId = effectiveThreadId;
 
-        // Return the structured body for API route
-        return {
-          message: lastMessage,
-          threadId: activeThreadId,
-          agentId: extraPayloadRef.current.agentId,
-          extras: {
-            pastedContents: extraPayloadRef.current.pastedContents ?? [],
-            fileTexts: extraPayloadRef.current.fileTexts ?? [],
-          },
-        };
-      },
+      return {
+        message: lastMessage,
+        threadId: activeThreadId,
+        agentId: extraPayloadRef.current.agentId,
+        extras: {
+          pastedContents: extraPayloadRef.current.pastedContents ?? [],
+          fileTexts: extraPayloadRef.current.fileTexts ?? [],
+        },
+      };
+    },
 
-      onFinish: async () => {
-        if (messages.length > 0) {
-          await queryClient.invalidateQueries({
-            queryKey: trpc.chat.getChats.queryKey(),
-          });
-        }
-      },
-    });
+    onFinish: async () => {
+      // For new threads, give Mastra extra time to persist the thread
+      if (!threadId) {
+        await new Promise((resolve) => setTimeout(resolve, 3500));
+      }
 
-  // Store handleSubmit in ref so we can access it in mutation callbacks
+      // Mark thread as ready for message fetching
+      chatStore.setThreadReady(effectiveThreadId, true);
+
+      // Reset creating state when streaming is complete
+      chatStore.setIsCreatingAndSending(false);
+
+      // Refresh the sidebar to show the new thread with generated title
+      await queryClient.invalidateQueries({
+        queryKey: trpc.chat.getChats.queryKey(),
+      });
+    },
+
+    onError: () => {
+      // Reset creating state on error
+      chatStore.setIsCreatingAndSending(false);
+    },
+  });
+
   chatSubmitRef.current = handleSubmit;
 
   const handleSubmitMessage = async (
     composedInput: string,
     extrasOnly: boolean
   ) => {
-    // Prefer append to bypass handleSubmit's internal empty-input guard
     const contentToSend = composedInput ?? "";
 
     if (!threadId) {
-      // First message in a brand-new chat: send with generated thread id, then navigate
-      firstMessageSubmittedRef.current = true;
-      // Optimistically prepend to sidebar chats cache with placeholder title
-      queryClient.setQueryData(trpc.chat.getChats.queryKey(), (prev: any) => {
-        const list = Array.isArray(prev) ? prev : [];
-        if (list.find((c: any) => c.id === effectiveThreadId)) return list;
-        const nowIso = new Date().toISOString();
-        return [
-          {
-            id: effectiveThreadId,
-            resourceId: "",
-            title: "New Thread",
-            metadata: null,
-            createdAt: nowIso,
-            updatedAt: nowIso,
-            createdAtZ: nowIso,
-            updatedAtZ: nowIso,
-          },
-          ...list,
-        ];
-      });
-      setIsCreatingAndSending(true);
-      await append({ role: "user", content: contentToSend });
-      setInput("");
-      router.navigate({
-        to: "/chat/{-$threadId}",
-        params: { threadId: effectiveThreadId },
-        replace: true,
-      });
-      setIsCreatingAndSending(false);
+      // First message: Let Mastra create the thread automatically with title generation
+      chatStore.setIsCreatingAndSending(true);
+
+      try {
+        const newThreadId = effectiveThreadId;
+
+        // Navigate to the thread URL first for better UX
+        router.navigate({
+          to: "/chat/{-$threadId}",
+          params: { threadId: newThreadId },
+          replace: true,
+        });
+
+        // Send the message - Mastra will create the thread automatically
+        await append({ role: "user", content: contentToSend });
+        setInput("");
+      } catch (error) {
+        console.error("Failed to send message:", error);
+        toast.error("Failed to send message. Please try again.");
+      } finally {
+        chatStore.setIsCreatingAndSending(false);
+      }
       return;
     }
 
+    // Existing thread - just append message
     await append({ role: "user", content: contentToSend });
     setInput("");
   };
@@ -200,7 +226,6 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
   ) => {
     const base = message.trim();
 
-    // Build extras payload for server
     const pastedContents = (pasted || []).map((p) => p.content);
     const fileTexts = (files || [])
       .map((f) => {
@@ -216,7 +241,6 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
       agentId: selectedAgent,
     };
 
-    // Only send when there is base text or extras
     if (!base && pastedContents.length === 0 && fileTexts.length === 0) {
       return;
     }
@@ -226,21 +250,28 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
     handleSubmitMessage(base, extrasOnly);
   };
 
-  // Distinct loading states: show skeleton only for initial fetch of existing chat without messages
   const showSkeleton = Boolean(
     threadId &&
+      threadReady && // Only show skeleton when thread is ready
       isLoading &&
       messages.length === 0 &&
-      !firstMessageSubmittedRef.current &&
       status !== "streaming"
   );
+
+  // Show loading state when creating and sending first message or when message is being processed
+  const shouldShowLoading =
+    isCreatingAndSending || (status === "submitted" && !error);
 
   return (
     <div className="flex flex-col h-screen">
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto w-full px-4 py-8 space-y-4">
-          {isErrorFetching ? (
-            <ErrorState message="Failed to load messages. Please retry." />
+          {isErrorFetching || error ? (
+            <ErrorState
+              message={
+                error?.message || "Failed to load messages. Please retry."
+              }
+            />
           ) : showSkeleton ? (
             <div className="max-w-2xl mx-auto w-full px-4 py-8 space-y-3">
               <Skeleton className="h-5 w-40" />
@@ -313,7 +344,7 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
                       </div>
                     );
                   })}
-                {(isCreatingAndSending || status === "submitted") && (
+                {shouldShowLoading && (
                   <Message from="assistant">
                     <MessageContent>
                       <div className="flex justify-start py-2">

@@ -7,27 +7,32 @@ import type { HttpLoggerOptions } from "hono-pino/";
 
 const isDevelopment = env.NODE_ENV === "development";
 
-// Dedicated Pino logger for error handling
-export const errorLogger = pino({
-  level: env.NODE_ENV === "development" ? "debug" : "info",
-  formatters: {
-    level: (label) => {
-      return { level: label.toUpperCase() };
+export const createLogger = () => {
+  return pino({
+    level: env.NODE_ENV === "development" ? "debug" : "info",
+    formatters: {
+      level: (label) => {
+        return { level: label.toUpperCase() };
+      },
+    },
+    timestamp: pino.stdTimeFunctions.isoTime,
+    serializers: {
+      err: pino.stdSerializers.err,
     },
   },
-  timestamp: pino.stdTimeFunctions.isoTime,
-  serializers: {
-    err: pino.stdSerializers.err,
-  },
-}, isDevelopment
-  ? pretty({
-    colorize: true,
-    singleLine: true,
-    ignore: "pid,hostname",
-    translateTime: "SYS:standard",
-  })
-  : undefined
-);
+    isDevelopment
+      ? pretty({
+        colorize: true,
+        singleLine: true,
+        ignore: "pid,hostname",
+        translateTime: "SYS:standard",
+      })
+      : undefined
+  );
+};
+
+// Dedicated Pino logger for error handling using createLogger
+export const errorLogger = createLogger();
 
 export const logger = pinoLogger({
   pino: pino(
@@ -86,19 +91,19 @@ export const handleTRPCError = (opts: {
   errorLogger.error(
     {
       err: {
-        message: error.message,
-        code: error.code,
-        type: error.name,
+        message: typeof error.message === 'object' ? JSON.stringify(error) : error.message || 'Unknown error',
+        code: typeof error.code === 'object' ? JSON.stringify(error.code) : error.code || 'UNKNOWN_ERROR',
+        type: typeof error.name === 'object' ? JSON.stringify(error.name) : error.name || 'UnknownError',
+        path,
+        user: ctx?.user?.id
       },
-      type,
-      path,
-      user: ctx?.user?.id,
     },
-    `tRPC Error: ${error.message}`
+    `tRPC Error: ${typeof error.message === 'object' ? JSON.stringify(error.message) : error.message || 'Unknown error'}`
   );
 
   // Follow tRPC standards: send internal server errors to bug reporting
-  if (error.code === 'INTERNAL_SERVER_ERROR') {
+  const errorCode = typeof error.code === 'object' ? JSON.stringify(error.code) : error.code;
+  if (errorCode === 'INTERNAL_SERVER_ERROR') {
     // Example: send to bug reporting service
     // reportToBugsnag(error, { type, path, input, ctx, req });
   }

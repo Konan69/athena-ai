@@ -8,6 +8,7 @@ import {
   integer,
   bigint,
 } from "drizzle-orm/pg-core";
+import { organization } from "./organization";
 
 export const mastraScorers = pgTable("mastra_scorers", {
   id: text().primaryKey().notNull(),
@@ -42,6 +43,7 @@ export const mastraScorers = pgTable("mastra_scorers", {
 export const mastraThreads = pgTable("mastra_threads", {
   id: text().primaryKey().notNull(),
   resourceId: text().notNull(),
+  organizationId: text().references(() => organization.id, { onDelete: "cascade" }),
   title: text().notNull(),
   metadata: text(),
   createdAt: timestamp({ mode: "string" }).notNull(),
@@ -118,4 +120,3 @@ export const mastraEvals = pgTable("mastra_evals", {
   createdAt: timestamp({ mode: "string" }),
   createdAtZ: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
 });
-

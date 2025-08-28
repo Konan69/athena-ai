@@ -12,7 +12,7 @@ export const RAGStage = z.enum([
 
 export const baseEvent = z.object({
 	jobId: z.string(),
-	userId: z.string(),
+	orgId: z.string(),
 	createdAt: z.string().datetime(),
 });
 

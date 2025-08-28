@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { chatModule } from "./chat";
 import { libraryModule } from "./library";
+import { organizationModule } from "./organization";
 import { AnyTRPCRouter } from "@trpc/server";
 import { APP } from "../types";
 
@@ -11,4 +12,8 @@ interface Module {
   name: string;
 }
 
-export const modules: Module[] = [{ ...chatModule }, { ...libraryModule }];
+export const modules: Module[] = [
+  { ...chatModule },
+  { ...libraryModule },
+  { ...organizationModule },
+];

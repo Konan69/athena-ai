@@ -1,34 +1,19 @@
 import type { auth } from "../modules/auth";
+import { TRPC_ERROR_CODE_KEY } from "@trpc/server/rpc";
+export type AuthUser = typeof auth.$Infer.Session.user;
+export type AuthSession = typeof auth.$Infer.Session.session;
+export type ActiveOrganizationId = typeof auth.$Infer.Session.session.activeOrganizationId;
 
 export interface APP {
   Variables: {
-    user: typeof auth.$Infer.Session.user
-    session: typeof auth.$Infer.Session.session
+    user: AuthUser;
+    session: AuthSession;
+    activeOrganizationId: ActiveOrganizationId;
   };
 }
 
-export interface BaseRequest {
-  id?: string;
-  timestamp?: Date;
-}
 
-export interface BaseResponse {
-  success: boolean;
-  timestamp: Date;
-}
-
-export interface ErrorResponse extends BaseResponse {
-  success: false;
-  error: string;
-  details?: unknown;
-}
-
-export interface SuccessResponse<T> extends BaseResponse {
-  success: true;
-  data: T;
-}
-
-export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+export type TRPCErrorCode = TRPC_ERROR_CODE_KEY;
 
 // RAG event types and schemas re-exported for consumers (frontend)
 export type {
@@ -51,7 +36,6 @@ export {
 export type MastraRuntimeContext = {
   resourceId: string;
   sessionId?: string;
-  indexName: string;
   filter: string;
 };
 

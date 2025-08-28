@@ -11,6 +11,7 @@ import { createTRPCContext } from "./trpc/base";
 import { appRouter } from "./trpc";
 import { modules } from "./modules";
 import { authMiddleware } from "./middleware/auth.middleware";
+import { initializeServices } from "./config/init";
 
 const PORT = env.PORT;
 
@@ -53,6 +54,8 @@ app
     })
   )
   .onError(errorHandler);
+
+initializeServices();
 
 export default {
   fetch: app.fetch,

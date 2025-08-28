@@ -6,20 +6,20 @@ export const libraryProcedures = createTRPCRouter({
   createLibraryItem: protectedProcedure
     .input(createLibraryItemSchema)
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id;
-      const item = await libraryService.createLibraryItem(userId, input);
+      const orgId = ctx.activeOrganizationId;
+      const item = await libraryService.createLibraryItem(orgId, input);
       return item;
     }),
   getLibraryItems: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.user.id;
-    const items = await libraryService.getLibraryItems(userId);
+    const orgId = ctx.activeOrganizationId;
+    const items = await libraryService.getLibraryItems(orgId);
     return items;
   }),
 
   getPresignedUrl: protectedProcedure.input(presignedUrlSchema)
     .query(async ({ ctx, input }) => {
-      const userId = ctx.user.id;
-      const url = await libraryService.getPresignedUrl(userId, input);
+      const orgId = ctx.activeOrganizationId;
+      const url = await libraryService.getPresignedUrl(orgId, input);
       return url;
     }),
 });

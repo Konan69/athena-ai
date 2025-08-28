@@ -10,7 +10,7 @@ export type ChatExtras = ChatRequest["extras"];
 export function composeUserMessage(
 	baseMessage: ChatMessage | null | undefined,
 	extras?: ChatExtras
-): ChatMessage | null {
+): ChatMessage {
 	const baseContent = baseMessage?.content?.trim() ?? "";
 
 	const pastedCombined = (extras?.pastedContents ?? [])
@@ -41,7 +41,7 @@ export function composeUserMessage(
 	}
 
 	if (!composedContent) {
-		return null;
+		return { role: "user", content: "" };
 	}
 
 	if (baseMessage) {

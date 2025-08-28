@@ -3,10 +3,9 @@ import { openai } from "@ai-sdk/openai";
 
 export const vectorQueryTool = createVectorQueryTool(
   {
-    // overwritten by runtimeContext
-    vectorStoreName: "pgVector",
-    indexName: "embeddings",
-    model: openai.embedding("text-embedding-3-small"),
+    vectorStoreName: "vectors",
+    indexName: "embeddings", // Todo: source from shared package
+    model: openai.embedding("text-embedding-3-small", { dimensions: 1536 }),
   },
 
 );

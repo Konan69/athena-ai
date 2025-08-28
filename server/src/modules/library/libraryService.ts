@@ -3,13 +3,13 @@ import db from "../../db";
 import { library, libraryItem, user } from "../../db/schemas";
 import { CreateLibraryItemPayload } from "./libraryValidator";
 import { desc, eq } from "drizzle-orm";
-import { HTTPException } from "hono/http-exception";
+import { ServiceErrors } from "../../lib/trpc-errors";
 import ragService from "../RAG/ragService";
 
 export class LibraryService {
-  async getLibraryItems(userId: string) {
+  async getLibraryItems(organizationId: string) {
     const userLibrary = await db.query.library.findFirst({
-      where: eq(library.userId, userId),
+      where: eq(library.organizationId, organizationId),
       with: {
         items: {
           orderBy: [desc(libraryItem.createdAt)],
@@ -19,14 +19,15 @@ export class LibraryService {
     return userLibrary?.items ?? [];
   }
 
-  async createLibraryItem(userId: string, payload: CreateLibraryItemPayload) {
-    const userLibrary = await db.query.library.findFirst({
-      where: eq(library.userId, userId),
+  async createLibraryItem(organizationId: string, payload: CreateLibraryItemPayload) {
+    const orgLibrary = await db.query.library.findFirst({
+      where: eq(library.organizationId, organizationId),
     });
 
-    if (!userLibrary) {
-      throw new HTTPException(404, { message: "User library not found" });
+    if (!orgLibrary) {
+      throw ServiceErrors.notFound("Organization library");
     }
+
     const data = await db
       .insert(libraryItem)
       .values({
@@ -34,7 +35,7 @@ export class LibraryService {
         description: payload.description,
         uploadLink: payload.uploadLink,
         status: "processing",
-        libraryId: userLibrary.id,
+        libraryId: orgLibrary.id,
         fileSize: payload.fileSize,
         tags: payload.tags,
       })
@@ -43,14 +44,14 @@ export class LibraryService {
     const created = data[0]!;
     // Fire-and-forget background training with events; pass only essentials
     ragService
-      .train({ userId, item: created })
+      .train({ orgId: organizationId, item: created })
       .catch(() => { });
 
     return data;
   }
 
-  async getPresignedUrl(userId: string, input: { key: string; contentType: string }) {
-    const objectKey = `library/${userId}/${input.key}`;
+  async getPresignedUrl(orgId: string, input: { key: string; contentType: string }) {
+    const objectKey = `library/${orgId}/${input.key}`;
 
     const presignedUrl = s3Client.presign(objectKey, {
       method: 'PUT',

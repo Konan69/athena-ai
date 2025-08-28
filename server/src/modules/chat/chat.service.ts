@@ -1,32 +1,33 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, or, isNull } from "drizzle-orm";
 import db from "../../db";
 import { mastraThreads, mastraMessages } from "../../db/schemas";
 import { mastra } from "../../config/mastra";
 import { ChatRequest } from "./validators";
 import { composeUserMessage } from "./utils/compose";
 import { memory } from "../../config/mastra";
-import { HTTPException } from "hono/http-exception";
+import { ServiceErrors } from "../../lib/trpc-errors";
+import {
+  CreateChatInput,
+  GetChatsInput,
+  GetChatMessagesInput,
+  RenameChatInput,
+  DeleteChatInput,
+} from "./validators/chatValidator";
 
 export class ChatService {
-  async processChat(request: ChatRequest) {
-    const { message, threadId, resourceId, extras, runtimeContext, agentId } = request;
+  async processChat(request: ChatRequest & { resourceId: string; organizationId: string }) {
+    const { message, threadId, resourceId, organizationId, extras, runtimeContext, agentId } = request;
 
     const effectiveMessage = composeUserMessage(message, extras);
-
-
-    // Handle cases where message might be null (e.g., initial load or error)
-    if (!effectiveMessage) {
-      throw new HTTPException(400, { message: "Missing message content" });
-    }
 
     // Get the agent from Mastra using the requested agentId
     const agent = mastra.getAgent(agentId);
     if (!agent) {
-      throw new HTTPException(500, { message: `Agent '${agentId}' not found` });
+      throw ServiceErrors.notFound(`Agent '${agentId}'`);
     }
-    //TODO: switching agents remove memory
 
     // Process with memory using the single message content
+    // Mastra will create the thread automatically if it doesn't exist
     const stream = await agent.stream({
       messages: effectiveMessage.content,
       runtimeContext,
@@ -36,98 +37,157 @@ export class ChatService {
       },
     });
 
+
+
+    db
+      .update(mastraThreads)
+      .set({
+        organizationId: organizationId,
+      })
+      .where(eq(mastraThreads.id, threadId));
+
     return stream;
   }
 
-  async createChat(userId: string) {
-    const thread = await memory.createThread({
-      resourceId: userId,
-    });
 
-    return {
-      id: thread.id,
-      title: thread.title,
-      metadata: thread.metadata,
-      createdAt: thread.createdAt,
-      updatedAt: thread.updatedAt,
-      createdAtZ: thread.createdAt.toISOString(),
-      updatedAtZ: thread.updatedAt?.toISOString(),
-    };
-  }
 
-  async getChats(userId: string) {
-    const chats = await memory.getThreadsByResourceId({
-      resourceId: userId,
-    });
 
-    return chats.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
+  async getChatMessages(input: GetChatMessagesInput) {
+    // Single query: verify thread ownership and set orgId if missing
+    // Uses CASE to conditionally update organizationId in one atomic operation
+    const thread = await db
+      .select({
+        id: mastraThreads.id,
+        organizationId: mastraThreads.organizationId,
+        resourceId: mastraThreads.resourceId,
+      })
+      .from(mastraThreads)
+      .where(
+        and(
+          eq(mastraThreads.id, input.threadId),
+          eq(mastraThreads.resourceId, input.userId),
+          // Allow access if: orgId matches OR orgId is null (will be set below)
+          or(
+            eq(mastraThreads.organizationId, input.organizationId),
+            isNull(mastraThreads.organizationId)
+          )
+        )
+      )
+      .limit(1);
 
-  async getChatMessages(userId: string, threadId: string) {
+    if (!thread[0]) {
+      throw ServiceErrors.notFound("Thread");
+    }
+
+    const currentThread = thread[0]
+
+    // If organizationId is null, update it atomically
+    if (!currentThread.organizationId) {
+      await db
+        .update(mastraThreads)
+        .set({ organizationId: input.organizationId })
+        .where(
+          and(
+            eq(mastraThreads.id, input.threadId),
+            isNull(mastraThreads.organizationId) // Prevent race conditions
+          )
+        );
+    }
+
     const messages = await memory.query({
-      threadId,
-      resourceId: userId,
+      threadId: input.threadId,
+      resourceId: input.userId,
     });
     return messages;
   }
 
-  async getChatsDrizzle(userId: string) {
-    const chats = await db
-      .select()
-      .from(mastraThreads)
-      .where(eq(mastraThreads.resourceId, userId))
-      .orderBy(desc(mastraThreads.createdAt));
 
-    return chats;
+  async getChats(input: GetChatsInput) {
+    try {
+      // First, bulk update any threads missing organizationId for this user
+      // await db
+      //   .update(mastraThreads)
+      //   .set({ organizationId: input.organizationId })
+      //   .where(
+      //     and(
+      //       eq(mastraThreads.resourceId, input.userId),
+      //       isNull(mastraThreads.organizationId)
+      //     )
+      //   );
+
+      // fetch all threads for this user and organization in a single query
+      const chats = await db
+        .select()
+        .from(mastraThreads)
+        .where(
+          and(
+            eq(mastraThreads.resourceId, input.userId),
+            eq(mastraThreads.organizationId, input.organizationId)
+          )
+        )
+        .orderBy(desc(mastraThreads.createdAt));
+
+      return chats;
+    } catch (error) {
+      console.error("Failed to get chats:", error);
+      throw ServiceErrors.internal("Failed to get chats");
+    }
   }
 
-  async renameChat(userId: string, threadId: string, title: string) {
+
+  async renameChat(input: RenameChatInput) {
+
     const now = new Date().toISOString();
     const updated = await db
       .update(mastraThreads)
       .set({
-        title,
+        title: input.title,
         updatedAt: now,
         updatedAtZ: now,
       })
       .where(
         and(
-          eq(mastraThreads.id, threadId),
-          eq(mastraThreads.resourceId, userId)
+          eq(mastraThreads.id, input.threadId),
+          eq(mastraThreads.resourceId, input.userId),
+          eq(mastraThreads.organizationId, input.organizationId)
         )
       )
       .returning();
 
     if (!updated.length) {
-      throw new HTTPException(404, { message: "Thread not found" });
+      throw ServiceErrors.notFound("Thread");
     }
     return updated[0];
   }
 
-  async deleteChat(userId: string, threadId: string) {
+
+  async deleteChat(input: DeleteChatInput) {
+
     // Delete related messages first
     await db
       .delete(mastraMessages)
-      .where(eq(mastraMessages.threadId, threadId));
+      .where(eq(mastraMessages.threadId, input.threadId));
 
-    // Delete the thread (scoped to user)
+    // Delete the thread (scoped to user and organization)
     const deleted = await db
       .delete(mastraThreads)
       .where(
         and(
-          eq(mastraThreads.id, threadId),
-          eq(mastraThreads.resourceId, userId)
+          eq(mastraThreads.id, input.threadId),
+          eq(mastraThreads.resourceId, input.userId),
+          eq(mastraThreads.organizationId, input.organizationId)
         )
       )
       .returning({ id: mastraThreads.id });
 
     if (!deleted.length) {
-      throw new HTTPException(404, { message: "Thread not found" });
+      throw ServiceErrors.notFound("Thread");
     }
 
     const first = deleted[0]!;
     return { success: true, id: first.id } as const;
   }
+
 }
 
 export const chatService = new ChatService();

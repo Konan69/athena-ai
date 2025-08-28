@@ -14,7 +14,10 @@ import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as AuthenticatedOrganizationsIndexRouteImport } from './routes/_authenticated/organizations/index'
+import { Route as InvitationsInvitationIdAcceptRouteImport } from './routes/invitations/$invitationId/accept'
 import { Route as AuthenticatedChatChar123ThreadIdChar125RouteImport } from './routes/_authenticated/chat/{-$threadId}'
+import { Route as AuthenticatedOrganizationsOrgIdMembersIndexRouteImport } from './routes/_authenticated/organizations/$orgId/members/index'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -39,10 +42,28 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthenticatedOrganizationsIndexRoute =
+  AuthenticatedOrganizationsIndexRouteImport.update({
+    id: '/organizations/',
+    path: '/organizations/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const InvitationsInvitationIdAcceptRoute =
+  InvitationsInvitationIdAcceptRouteImport.update({
+    id: '/invitations/$invitationId/accept',
+    path: '/invitations/$invitationId/accept',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedChatChar123ThreadIdChar125Route =
   AuthenticatedChatChar123ThreadIdChar125RouteImport.update({
     id: '/chat/{-$threadId}',
     path: '/chat/{-$threadId}',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedOrganizationsOrgIdMembersIndexRoute =
+  AuthenticatedOrganizationsOrgIdMembersIndexRouteImport.update({
+    id: '/organizations/$orgId/members/',
+    path: '/organizations/$orgId/members/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 
@@ -51,12 +72,18 @@ export interface FileRoutesByFullPath {
   '/library': typeof AuthenticatedLibraryRoute
   '/': typeof AuthenticatedIndexRoute
   '/chat/{-$threadId}': typeof AuthenticatedChatChar123ThreadIdChar125Route
+  '/invitations/$invitationId/accept': typeof InvitationsInvitationIdAcceptRoute
+  '/organizations': typeof AuthenticatedOrganizationsIndexRoute
+  '/organizations/$orgId/members': typeof AuthenticatedOrganizationsOrgIdMembersIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/': typeof AuthenticatedIndexRoute
   '/chat/{-$threadId}': typeof AuthenticatedChatChar123ThreadIdChar125Route
+  '/invitations/$invitationId/accept': typeof InvitationsInvitationIdAcceptRoute
+  '/organizations': typeof AuthenticatedOrganizationsIndexRoute
+  '/organizations/$orgId/members': typeof AuthenticatedOrganizationsOrgIdMembersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -66,12 +93,29 @@ export interface FileRoutesById {
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/chat/{-$threadId}': typeof AuthenticatedChatChar123ThreadIdChar125Route
+  '/invitations/$invitationId/accept': typeof InvitationsInvitationIdAcceptRoute
+  '/_authenticated/organizations/': typeof AuthenticatedOrganizationsIndexRoute
+  '/_authenticated/organizations/$orgId/members/': typeof AuthenticatedOrganizationsOrgIdMembersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/login' | '/library' | '/' | '/chat/{-$threadId}'
+  fullPaths:
+    | '/login'
+    | '/library'
+    | '/'
+    | '/chat/{-$threadId}'
+    | '/invitations/$invitationId/accept'
+    | '/organizations'
+    | '/organizations/$orgId/members'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/library' | '/' | '/chat/{-$threadId}'
+  to:
+    | '/login'
+    | '/library'
+    | '/'
+    | '/chat/{-$threadId}'
+    | '/invitations/$invitationId/accept'
+    | '/organizations'
+    | '/organizations/$orgId/members'
   id:
     | '__root__'
     | '/_auth'
@@ -80,11 +124,15 @@ export interface FileRouteTypes {
     | '/_authenticated/library'
     | '/_authenticated/'
     | '/_authenticated/chat/{-$threadId}'
+    | '/invitations/$invitationId/accept'
+    | '/_authenticated/organizations/'
+    | '/_authenticated/organizations/$orgId/members/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  InvitationsInvitationIdAcceptRoute: typeof InvitationsInvitationIdAcceptRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -124,11 +172,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_authenticated/organizations/': {
+      id: '/_authenticated/organizations/'
+      path: '/organizations'
+      fullPath: '/organizations'
+      preLoaderRoute: typeof AuthenticatedOrganizationsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/invitations/$invitationId/accept': {
+      id: '/invitations/$invitationId/accept'
+      path: '/invitations/$invitationId/accept'
+      fullPath: '/invitations/$invitationId/accept'
+      preLoaderRoute: typeof InvitationsInvitationIdAcceptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/chat/{-$threadId}': {
       id: '/_authenticated/chat/{-$threadId}'
       path: '/chat/{-$threadId}'
       fullPath: '/chat/{-$threadId}'
       preLoaderRoute: typeof AuthenticatedChatChar123ThreadIdChar125RouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/organizations/$orgId/members/': {
+      id: '/_authenticated/organizations/$orgId/members/'
+      path: '/organizations/$orgId/members'
+      fullPath: '/organizations/$orgId/members'
+      preLoaderRoute: typeof AuthenticatedOrganizationsOrgIdMembersIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
   }
@@ -148,6 +217,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedChatChar123ThreadIdChar125Route: typeof AuthenticatedChatChar123ThreadIdChar125Route
+  AuthenticatedOrganizationsIndexRoute: typeof AuthenticatedOrganizationsIndexRoute
+  AuthenticatedOrganizationsOrgIdMembersIndexRoute: typeof AuthenticatedOrganizationsOrgIdMembersIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -155,6 +226,9 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedChatChar123ThreadIdChar125Route:
     AuthenticatedChatChar123ThreadIdChar125Route,
+  AuthenticatedOrganizationsIndexRoute: AuthenticatedOrganizationsIndexRoute,
+  AuthenticatedOrganizationsOrgIdMembersIndexRoute:
+    AuthenticatedOrganizationsOrgIdMembersIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -164,6 +238,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  InvitationsInvitationIdAcceptRoute: InvitationsInvitationIdAcceptRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

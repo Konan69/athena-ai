@@ -9,7 +9,20 @@ export default defineConfig({
     url: env.DATABASE_URL,
   },
   verbose: true,
+
   schemaFilter: ["public"],
-  tablesFilter: ["!mastra_*"],
+  tablesFilter: [
+    "!mastra_scorers",
+    "!mastra_workflow_snapshot",
+    "!mastra_traces",
+    "!mastra_messages",
+    "!mastra_resources",
+    "!mastra_evals",
+  ],
+  entities: {
+    roles: {
+      exclude: ["embeddings*"]
+    }
+  },
   strict: true,
 });

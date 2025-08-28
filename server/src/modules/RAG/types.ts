@@ -3,7 +3,7 @@ import type { LibraryItem } from "@/src/types/library";
 export type SupportedExtractor = "pdf" | "markdown" | "html" | "json" | "text";
 
 export interface TrainingRequest {
-	userId: string;
+	orgId: string;
 	item: LibraryItem;
 	forceExtractor?: SupportedExtractor;
 }

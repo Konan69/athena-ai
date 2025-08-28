@@ -4,7 +4,6 @@ import { useSubscription } from "@trpc/tanstack-react-query";
 import { trpc } from "@/integrations/tanstack-query/root-provider";
 import type { TrainingEvent, LibraryItem } from "@athena-ai/server/types";
 import { useQueryClient } from "@tanstack/react-query";
-
 const EventHandler = () => {
 	const qc = useQueryClient();
 
@@ -65,6 +64,7 @@ const EventHandler = () => {
 			},
 		})
 	);
+	return null;
 }
 
 export default EventHandler

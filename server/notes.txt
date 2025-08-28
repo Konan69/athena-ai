@@ -4,3 +4,5 @@ inngest background jobs
 
 resourceId is user ID
 thread is the messages of the user (resource)
+
+https://midday.ai/components/

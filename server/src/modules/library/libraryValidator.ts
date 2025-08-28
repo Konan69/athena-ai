@@ -11,7 +11,7 @@ export const createLibraryItemSchema = z.object({
 
 export type CreateLibraryItemPayload = Omit<
   z.infer<typeof createLibraryItemSchema>,
-  "userId"
+  "organizationId"
 >;
 
 export const presignedUrlSchema = z.object({

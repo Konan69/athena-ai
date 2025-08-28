@@ -2,21 +2,16 @@
 import {
   createTRPCRouter,
   protectedProcedure,
-  publicProcedure,
-  t,
 } from "../../../trpc/base";
-import * as chatValidator from "../validators/chatValidator";
 import { chatService } from "../chat.service";
-
 import { z } from "zod";
 
 export const chatProcedures = createTRPCRouter({
-  createChat: protectedProcedure.mutation(async ({ ctx }) => {
-    const chat = await chatService.createChat(ctx.user.id);
-    return chat;
-  }),
   getChats: protectedProcedure.query(async ({ ctx }) => {
-    const chats = await chatService.getChatsDrizzle(ctx.user.id);
+    const chats = await chatService.getChats({
+      userId: ctx.user.id,
+      organizationId: ctx.activeOrganizationId,
+    });
     return chats;
   }),
   getChatMessages: protectedProcedure
@@ -26,10 +21,11 @@ export const chatProcedures = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const messages = await chatService.getChatMessages(
-        ctx.user.id,
-        input.threadId
-      );
+      const messages = await chatService.getChatMessages({
+        userId: ctx.user.id,
+        organizationId: ctx.activeOrganizationId,
+        threadId: input.threadId,
+      });
       return messages;
     }),
   renameChat: protectedProcedure
@@ -40,11 +36,12 @@ export const chatProcedures = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const updated = await chatService.renameChat(
-        ctx.user.id,
-        input.threadId,
-        input.title
-      );
+      const updated = await chatService.renameChat({
+        userId: ctx.user.id,
+        organizationId: ctx.activeOrganizationId,
+        threadId: input.threadId,
+        title: input.title,
+      });
       return updated;
     }),
   deleteChat: protectedProcedure
@@ -54,10 +51,11 @@ export const chatProcedures = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const result = await chatService.deleteChat(ctx.user.id, input.threadId);
+      const result = await chatService.deleteChat({
+        userId: ctx.user.id,
+        organizationId: ctx.activeOrganizationId,
+        threadId: input.threadId,
+      });
       return result;
     }),
-  sayHello: publicProcedure.query(async ({ ctx }) => {
-    return "Hello, world!";
-  }),
 });

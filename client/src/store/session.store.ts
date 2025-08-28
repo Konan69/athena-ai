@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Session } from "better-auth";
+import type { AuthSession as Session } from "@athena-ai/server/types";
 
 interface SessionStore {
   session: Session | null;

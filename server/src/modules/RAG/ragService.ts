@@ -15,15 +15,14 @@ import { TextExtractor } from "@/src/modules/RAG/strategies/textExtractor";
 import { MarkdownExtractor } from "@/src/modules/RAG/strategies/markdownExtractor";
 import { HtmlExtractor } from "@/src/modules/RAG/strategies/htmlExtractor";
 import { RAGconstants } from "@/src/lib/constants";
-import { redisService } from "@/src/config/redis";
-import { getIndexName } from "@/src/lib/utils";
+import { ServiceErrors } from "@/src/lib/trpc-errors";
 
-
+const indexName = RAGconstants.indexName;
 class RAGService {
 	private s3;
 	private vectorStore;
 	private events: EventService;
-	private redis
+
 	private constants
 
 	constructor() {
@@ -31,7 +30,6 @@ class RAGService {
 		this.constants = RAGconstants
 		this.vectorStore = vectorStore;
 		this.events = EventService.instance;
-		this.redis = redisService;
 	}
 
 	// TODO: fix metadata and metadata filtering to the document using runtimeContext
@@ -45,111 +43,116 @@ class RAGService {
 	// The rest of the RAG service will interact only with the interface, not the concrete BullMQ implementation.
 	// This approach ensures reliability, scalability, and flexibility for future infrastructure changes.
 	async train(input: TrainingRequest) {
-		const startTime = performance.now();
 		try {
-			const { userId, item } = input;
-			const jobId = item.id;
-			const objectKey = item.uploadLink;
-			const title = item.title;
+			const startTime = performance.now();
+			try {
+				const { orgId, item } = input;
+				const jobId = item.id;
+				const objectKey = item.uploadLink;
+				const title = item.title;
 
-			console.log("[RAGService.train] Step 1: Mark job started and publish event");
-			const started = jobStartedEvent.parse({
-				type: "job_started",
-				jobId,
-				userId,
-				createdAt: new Date().toISOString(),
-				totalSteps: 3,
-				title: item.title,
-			});
-			await Effect.runPromise(Effect.tryPromise({
-				try: async () => { // TODO: use effects instead of promises
-					await db.update(libraryItem).set({ status: "processing" }).where(eq(libraryItem.id, jobId));
-					await this.events.publishTrainingEvent(started);
-				},
-				catch: (e) => { throw e as Error; }
-			}));
+				console.log("[RAGService.train] Step 1: Mark job started and publish event");
+				const started = jobStartedEvent.parse({
+					type: "job_started",
+					jobId,
+					orgId,
+					createdAt: new Date().toISOString(),
+					totalSteps: 3,
+					title: item.title,
+				});
+				await Effect.runPromise(Effect.tryPromise({
+					try: async () => { // TODO: use effects instead of promises
+						await db.update(libraryItem).set({ status: "processing" }).where(eq(libraryItem.id, jobId));
+						await this.events.publishTrainingEvent(started);
+					},
+					catch: (e) => { throw e as Error; }
+				}));
 
-			console.log("[RAGService.train] Step 2: Download from S3 and detect content type");
-			const { buffer: docBuffer, contentType } = await this.downloadFromS3(objectKey);
+				console.log("[RAGService.train] Step 2: Download from S3 and detect content type");
+				const { buffer: docBuffer, contentType } = await this.downloadFromS3(objectKey);
 
-			console.log("[RAGService.train] Step 3: Extract text using strategy based on objectKey/optional override");
-			await this.publishProgress({ userId, jobId, stage: "chunking", currentStep: 1, totalSteps: 3, percent: 10, message: "Extracting and chunking document" });
-			const extractorType = this.deriveExtractorType(objectKey, input.forceExtractor, contentType);
-			const text = await this.extractText(extractorType, docBuffer);
+				console.log("[RAGService.train] Step 3: Extract text using strategy based on objectKey/optional override");
+				await this.publishProgress({ orgId, jobId, stage: "chunking", currentStep: 1, totalSteps: 3, percent: 10, message: "Extracting and chunking document" });
+				const extractorType = this.deriveExtractorType(objectKey, input.forceExtractor, contentType);
+				const text = await this.extractText(extractorType, docBuffer);
 
-			console.log("[RAGService.train] Step 4: Chunk document");
-			const doc = this.createMDocument(extractorType, text);
-			const chunks = await doc.chunk(this.getChunkingParams(extractorType));
+				console.log("[RAGService.train] Step 4: Chunk document");
+				const doc = this.createMDocument(extractorType, text);
+				const chunks = await doc.chunk(this.getChunkingParams(extractorType));
 
-			console.log("[RAGService.train] Step 5: Generate embeddings");
-			await this.publishProgress({ userId, jobId, stage: "embedding", currentStep: 2, totalSteps: 3, percent: 50, message: `Generating ${chunks.length} embeddings` });
-			const { embeddings, usage } = await embedMany({
-				values: chunks.map((chunk) => chunk.text),
-				model: openai.embedding("text-embedding-3-small", { dimensions: this.constants.dimensions }),
-			});
+				console.log("[RAGService.train] Step 5: Generate embeddings");
+				await this.publishProgress({ orgId, jobId, stage: "embedding", currentStep: 2, totalSteps: 3, percent: 50, message: `Generating ${chunks.length} embeddings` });
+				const { embeddings, usage } = await embedMany({
+					values: chunks.map((chunk) => chunk.text),
+					model: openai.embedding("text-embedding-3-small", { dimensions: this.constants.dimensions }),
+				});
 
-			console.log("[RAGService.train] Step 6: Index vectors");
-			await this.publishProgress({ userId, jobId, stage: "indexing", currentStep: 3, totalSteps: 3, percent: 80, message: "Indexing vectors" });
-			const indexName = await this.ensureIndexExists(userId);
-			console.log("[RAGService.train] Step 6: Index vectors", usage);
+				console.log("[RAGService.train] Step 6: Index vectors");
+				await this.publishProgress({ orgId, jobId, stage: "indexing", currentStep: 3, totalSteps: 3, percent: 80, message: "Indexing vectors" });
+				console.log("[RAGService.train] Step 6: Index vectors", usage);
 
-			await this.vectorStore.upsert({
-				indexName,
-				vectors: embeddings,
-				metadata: chunks.map((c) => (
-					{
-						text: c.text, itemId: jobId,
+				await this.vectorStore.upsert({
+					indexName,
+					vectors: embeddings,
+					metadata: chunks.map((c) => ({
+						orgId: orgId,
+						text: c.text,
+						itemId: item.id,
 						source: objectKey,
 						title,
 						tags: item.tags,
 					})),
-			});
+				});
 
-			console.log("[RAGService.train] Step 7: Mark job complete and publish event");
-			await Effect.runPromise(Effect.tryPromise({
-				try: async () => {
-					await db.update(libraryItem).set({ status: "ready" }).where(eq(libraryItem.id, jobId));
-					await this.events.publishTrainingEvent(jobCompletedEvent.parse({
-						type: "job_completed",
-						jobId,
-						userId,
-						createdAt: new Date().toISOString(),
-						durationMs: performance.now() - startTime,
-					}));
-				},
-				catch: (e) => { throw e as Error; }
-			}));
+				console.log("[RAGService.train] Step 7: Mark job complete and publish event");
+				await Effect.runPromise(Effect.tryPromise({
+					try: async () => {
+						await db.update(libraryItem).set({ status: "ready" }).where(eq(libraryItem.id, jobId));
+						await this.events.publishTrainingEvent(jobCompletedEvent.parse({
+							type: "job_completed",
+							jobId,
+							orgId,
+							createdAt: new Date().toISOString(),
+							durationMs: Math.round(performance.now() - startTime),
+						}));
+					},
+					catch: (e) => { throw e as Error; }
+				}));
 
+			} catch (error) {
+				console.log("[RAGService.train] Step ERROR: Job failed", error);
+				// Fail job gracefully
+				const err = error as Error;
+				try { // TODO: type errors and handle with effects
+					// Best effort publish failure; we don't know userId/jobId here unless request parsed
+					// The caller always passes TrainingRequest, so we can still reference it
+					const anyInput = (arguments?.[0] as any) ?? {};
+					const orgId = anyInput.orgId as string | undefined;
+					const jobId = (anyInput.item?.id as string | undefined) ?? anyInput.jobId;
+					if (orgId && jobId) {
+						await this.events.publishTrainingEvent(jobFailedEvent.parse({
+							type: "job_failed",
+							jobId,
+							orgId,
+							createdAt: new Date().toISOString(),
+							error: { name: err.name || "Error", message: err.message, retryable: false },
+						}));
+						await db.update(libraryItem).set({ status: "failed" }).where(eq(libraryItem.id, jobId)).catch(() => { });
+					}
+				} catch { }
+				throw err;
+			}
 		} catch (error) {
-			console.log("[RAGService.train] Step ERROR: Job failed", error);
-			// Fail job gracefully
-			const err = error as Error;
-			try { // TODO: type errors and handle with effects
-				// Best effort publish failure; we don't know userId/jobId here unless request parsed
-				// The caller always passes TrainingRequest, so we can still reference it
-				const anyInput = (arguments?.[0] as any) ?? {};
-				const userId = anyInput.userId as string | undefined;
-				const jobId = (anyInput.item?.id as string | undefined) ?? anyInput.jobId;
-				if (userId && jobId) {
-					await this.events.publishTrainingEvent(jobFailedEvent.parse({
-						type: "job_failed",
-						jobId,
-						userId,
-						createdAt: new Date().toISOString(),
-						error: { name: err.name || "Error", message: err.message, retryable: false },
-					}));
-					await db.update(libraryItem).set({ status: "failed" }).where(eq(libraryItem.id, jobId)).catch(() => { });
-				}
-			} catch { }
-			throw err;
+			console.error("Failed to train document:", error);
+			throw ServiceErrors.internal("Failed to train document");
 		}
 	}
 
 	// make this useable by the library service
-	async removeDocument(input: { userId: string, itemId: string }) {
-		const { userId, itemId } = input;
+	async removeDocument(input: { itemId: string }) {
+		const { itemId } = input;
 		await this.vectorStore.deleteVector({
-			indexName: `user_${userId}`,
+			indexName,
 			id: itemId,
 		}); // TODO: add org support
 		await db.update(libraryItem).set({ status: "pending" }).where(eq(libraryItem.id, itemId));
@@ -229,7 +232,7 @@ class RAGService {
 	}
 
 	private async publishProgress(params: {
-		userId: string;
+		orgId: string;
 		jobId: string;
 		stage: "chunking" | "embedding" | "indexing";
 		currentStep: number;
@@ -237,11 +240,11 @@ class RAGService {
 		percent: number;
 		message?: string;
 	}) {
-		const { userId, jobId, stage, currentStep, totalSteps, percent, message } = params;
+		const { orgId, jobId, stage, currentStep, totalSteps, percent, message } = params;
 		await this.events.publishTrainingEvent(jobProgressEvent.parse({
 			type: "job_progress",
 			jobId,
-			userId,
+			orgId,
 			createdAt: new Date().toISOString(),
 			stage,
 			currentStep,
@@ -251,33 +254,6 @@ class RAGService {
 		}));
 	}
 
-	async ensureIndexExists(userId: string) {
-		const indexName = getIndexName(userId);
-
-		const cacheKey = this.redis.makeVectorIndexCacheKey(indexName)
-
-		// Check Redis cache first
-		const cached = await this.redis.reader.get(cacheKey);
-		if (cached === 'true') {
-			return indexName;
-		}
-
-		// Check if index exists first
-		const indexes = await this.vectorStore.listIndexes();
-		const exists = indexes.some(index => index === indexName);
-
-		if (!exists) {
-			await this.vectorStore.createIndex({
-				indexName,
-				dimension: this.constants.dimensions,
-				metric: this.constants.metric,
-			});
-		}
-
-		await this.redis.setVectorIndexCacheKey(cacheKey)
-
-		return indexName;
-	}
 
 	private getChunkingParams(type: SupportedExtractor): ChunkParams {
 		const baseParams = { maxSize: 1200, overlap: 150 };

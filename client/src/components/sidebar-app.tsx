@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { NavUser } from "@/components/nav-user";
+import { OrganizationSwitcher } from "@/components/organization-switcher";
 import {
   MessageCircle,
   SquarePen,
@@ -25,6 +26,8 @@ import {
   Trash2,
   Check,
   X as XIcon,
+  Building2,
+  Settings,
 } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
@@ -40,7 +43,7 @@ import {
 } from "date-fns";
 import { queryClient, trpc } from "@/integrations/tanstack-query/root-provider";
 import { SidebarChatListSkeleton } from "@/components/skeletons/sidebar-chat-list-skeleton";
-import { useChatStore } from "@/store/chat.store";
+import { useSessionStore } from "@/store/session.store";
 
 type ChatItem = {
   id: string;
@@ -255,7 +258,7 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
                 </div>
               </div>
             ) : (
-              <span className="relative truncate transition-transform duration-150">
+              <span className="relative  transition-transform duration-150">
                 {truncateTitle(chat.title || "Untitled chat")}
               </span>
             )}
@@ -318,13 +321,9 @@ function RetryError({ onRetry }: { onRetry: () => void }) {
 
 export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
   const router = useRouter();
+  const { session } = useSessionStore();
   const navigate = router.navigate;
-  const resetChatState = useChatStore((state) => state.resetChatState);
-  const bumpNewNonce = useChatStore((s) => s.bumpNewNonce);
-
   const handleNewChat = () => {
-    resetChatState(); // Reset chat state before navigating
-    bumpNewNonce(); // Force distinct route identity for /new
     navigate({
       to: "/chat/{-$threadId}",
       params: { threadId: undefined },
@@ -335,6 +334,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
   const baseGetChats = trpc.chat.getChats.queryOptions();
   const { data, isLoading, error, refetch } = useQuery({
     ...baseGetChats,
+    enabled: !!session?.activeOrganizationId,
     // Keep showing current list during refetches to prevent loading flicker
     placeholderData: (prev) => prev,
     staleTime: 10_000,
@@ -464,7 +464,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                 />
                 <BookOpen className="relative mr-2 h-4 w-4 text-foreground/80" />
                 <span className="relative transition-transform duration-150">
-                  APPS
+                  Agents
                 </span>
               </Button>
             </motion.div>
@@ -480,6 +480,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
           ) : data ? (
             <>
               <SidebarGroup>
+                {/* TODO:add empty state */}
                 <SidebarGroupLabel className="text-xs font-medium tracking-wide text-foreground/80">
                   Recent
                 </SidebarGroupLabel>

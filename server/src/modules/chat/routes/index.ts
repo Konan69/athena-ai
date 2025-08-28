@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { chatRequestSchema } from "../validators";
 import { chatService } from "../chat.service";
 import { createApp, createRuntimeContext } from "../../../lib/factory";
-import { getIndexName } from "@/src/lib/utils";
+
 
 export const validateChatRequest = zValidator("json", chatRequestSchema);
 
@@ -13,15 +13,18 @@ chatRouter.post("/", validateChatRequest, async (c) => {
     const body = c.req.valid("json");
     const runtimeContext = createRuntimeContext();
     const resourceId = c.var.user?.id;
-    runtimeContext.set("resourceId", resourceId); // Todo change to org id 
+    const orgId = c.var.activeOrganizationId;
+    runtimeContext.set("resourceId", resourceId);
     runtimeContext.set("sessionId", c.var.session.id);
-    runtimeContext.set("indexName", getIndexName(resourceId));
+    // Add orgId filter for vector queries to ensure tenant isolation
+    // Todo: create filters for user made agents
+    runtimeContext.set("filter", JSON.stringify({ orgId }));
     const request = {
       ...body,
+      organizationId: orgId!,
       resourceId,
       runtimeContext,
     };
-
 
     const result = await chatService.processChat(request);
 

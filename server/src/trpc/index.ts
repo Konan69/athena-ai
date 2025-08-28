@@ -2,6 +2,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "./base";
 import { chatProcedures } from "../modules/chat/routes/procedures";
 import { libraryProcedures } from "../modules/library/routes/procedures";
 import { trainingEvents } from "../../src/modules/RAG";
+import { organizationProcedures } from "../modules/organization/routes/procedures";
 
 // NOTE: DO NOT = USE IMPORT ALIAS IN TRPC ROUTER FILES
 // E.G. import { anything } from "@src/server/trpc/index";
@@ -14,6 +15,7 @@ export const appRouter = createTRPCRouter({
   library: libraryProcedures,
   // SSE subscription for all RAG events for current user (global toast style)
   trainingEvents: trainingEvents,
+  organization: organizationProcedures,
 
   hello: publicProcedure.query(({ ctx }) => {
     // TODO: MAKE GENERIC LOGGER, current impl is hono native

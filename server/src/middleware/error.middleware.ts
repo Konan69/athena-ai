@@ -68,13 +68,3 @@ export const errorHandler: ErrorHandler = (err, c) => {
     status as any
   );
 };
-
-// Keep the middleware for backward compatibility if needed
-export const errorMiddleware = createMiddleware(async (c: Context, next: Next) => {
-  try {
-    await next();
-  } catch (err) {
-    // Delegate to the ErrorHandler - cast err to Error type
-    return errorHandler(err as Error, c);
-  }
-});
