@@ -1,7 +1,13 @@
 "use client";
 
 import type React from "react";
-import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type ComponentProps,
+} from "react";
 import {
   Plus,
   SlidersHorizontal,
@@ -18,12 +24,21 @@ import {
   AlertCircle,
   Copy,
   UploadCloud,
+  SendIcon,
+  Loader2Icon,
+  SquareIcon,
+  XIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { type AgentOption, AVAILABLE_AGENTS } from "@/types/agents";
 import { useAgentStore } from "@/store/agent.store";
+import type { ChatStatus } from "ai";
+
+export type PromptInputSubmitProps = ComponentProps<typeof Button> & {
+  status?: ChatStatus;
+};
 
 // Replace Math.random with nanoid
 // import { nanoid } from "nanoid";
@@ -63,6 +78,9 @@ interface ChatInputProps {
   acceptedFileTypes?: string[];
   agents?: AgentOption[];
   onAgentChange?: (agentId: string) => void;
+  prefill?: string; // message text to inject into the textarea
+  status?: ChatStatus;
+  onStop?: () => void;
 }
 
 // Constants
@@ -196,6 +214,37 @@ const readFileAsText = (file: File): Promise<string> => {
 const getFileExtension = (filename: string): string => {
   const extension = filename.split(".").pop()?.toUpperCase() || "FILE";
   return extension.length > 8 ? extension.substring(0, 8) + "..." : extension;
+};
+
+export const PromptInputSubmit = ({
+  className,
+  variant = "default",
+  size = "icon",
+  status,
+  children,
+  ...props
+}: PromptInputSubmitProps) => {
+  let Icon = <SendIcon className="size-4" />;
+
+  if (status === "submitted") {
+    Icon = <Loader2Icon className="size-4 animate-spin" />;
+  } else if (status === "streaming") {
+    Icon = <SquareIcon className="size-4" />;
+  } else if (status === "error") {
+    Icon = <XIcon className="size-4" />;
+  }
+
+  return (
+    <Button
+      className={cn("gap-1.5 rounded-lg", className)}
+      size={size}
+      type="submit"
+      variant={variant}
+      {...props}
+    >
+      {children ?? Icon}
+    </Button>
+  );
 };
 
 // File Preview Component
@@ -479,6 +528,9 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
   acceptedFileTypes,
   agents = DEFAULT_AGENTS_INTERNAL,
   onAgentChange,
+  prefill,
+  status,
+  onStop,
 }) => {
   const [message, setMessage] = useState("");
   const [files, setFiles] = useState<FileWithPreview[]>([]);
@@ -501,6 +553,17 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
       )}px`;
     }
   }, [message]);
+
+  // Inject external prefill text into the textarea and focus
+  useEffect(() => {
+    if (typeof prefill === "string") {
+      setMessage(prefill);
+      // Focus on next tick to ensure DOM is updated
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
+    }
+  }, [prefill]);
 
   const handleFileSelect = useCallback(
     (selectedFiles: FileList | null) => {
@@ -715,7 +778,7 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div
-      className="relative w-full max-w-2xl mx-auto"
+      className="relative w-full max-w-3xl mx-auto"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -729,7 +792,7 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      <div className="bg-[#30302E] border border-zinc-700 rounded-xl shadow-lg items-end gap-2  flex flex-col">
+      <div className="bg-[#30302E] border border-zinc-700 rounded-xl shadow-lg items-end gap-2  flex flex-col focus-within:border-zinc-600">
         <textarea
           ref={textareaRef}
           value={message}
@@ -776,20 +839,31 @@ export const ClaudeChatInput: React.FC<ChatInputProps> = ({
               />
             )}
 
-            <Button
-              size="icon"
-              className={cn(
-                "h-9 w-9 p-0 flex-shrink-0 rounded-md transition-colors",
-                canSend
-                  ? "bg-amber-600 hover:bg-amber-700 text-white"
-                  : "bg-zinc-700 text-zinc-500 cursor-not-allowed"
-              )}
-              onClick={handleSend}
-              disabled={!canSend}
-              title="Send message"
-            >
-              <ArrowUp className="h-5 w-5" />
-            </Button>
+            {status === "streaming" || status === "submitted" ? (
+              <Button
+                size="icon"
+                className="h-9 w-9 p-0 flex-shrink-0 rounded-md bg-zinc-700 text-zinc-200 hover:bg-zinc-600"
+                onClick={() => onStop?.()}
+                title="Stop generating"
+              >
+                <SquareIcon className="h-5 w-5" />
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                className={cn(
+                  "h-9 w-9 p-0 flex-shrink-0 rounded-md transition-colors",
+                  canSend
+                    ? "bg-amber-600 hover:bg-amber-700 text-white"
+                    : "bg-zinc-700 text-zinc-500 cursor-not-allowed"
+                )}
+                onClick={handleSend}
+                disabled={!canSend}
+                title="Send message"
+              >
+                <ArrowUp className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         </div>
         {(files.length > 0 || pastedContent.length > 0) && (

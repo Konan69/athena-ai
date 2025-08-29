@@ -235,7 +235,6 @@ function Sidebar({
           className={cn(
             // Glass surface base with subtle texture and border for all variants
             "bg-sidebar/80 backdrop-blur-md supports-[backdrop-filter]:bg-sidebar/70",
-            " shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
             "group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm",
             "flex h-full w-full flex-col"
           )}

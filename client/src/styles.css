@@ -6,9 +6,10 @@
 
 body {
   @apply m-0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    -apple-system, "Segoe UI", "Roboto", "Ubuntu", "Cantarell", "Noto Sans",
+    sans-serif, Arial, "PingFang SC", "Source Han Sans SC", "Microsoft YaHei UI",
+    "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -134,10 +135,36 @@ code {
   }
   body {
     @apply bg-background text-foreground;
+    /* Match outlet background so overflow areas look identical */
+    background-image: url(/noise.png);
+    background-size: 96px 96px;
+    background-repeat: repeat;
   }
   .bg-noise {
     background-image: url(/noise.png);
     background-size: 96px 96px;
     background-repeat: repeat;
   }
+}
+
+/* Hide scrollbars globally while maintaining functionality */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+html::-webkit-scrollbar {
+  width: 0; /* Safari */
+  height: 0;
+  background: transparent;
+}
+
+/* Hide scrollbars while maintaining functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }

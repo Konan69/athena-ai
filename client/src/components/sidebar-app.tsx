@@ -29,7 +29,7 @@ import {
   Building2,
   Settings,
 } from "lucide-react";
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useRouter, useMatch } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -106,10 +106,12 @@ function humanizeDate(iso: string) {
 type ChatListItemProps = {
   chat: ChatItem;
   index: number;
+  currentThreadId?: string;
 };
 
-const ChatListItem = ({ chat, index }: ChatListItemProps) => {
+const ChatListItem = ({ chat, index, currentThreadId }: ChatListItemProps) => {
   const router = useRouter();
+  const isActive = currentThreadId === chat.id;
   const baseGetChats = trpc.chat.getChats.queryOptions();
   const renameMutation = useMutation({
     ...trpc.chat.renameChat.mutationOptions(),
@@ -206,7 +208,11 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
         >
           <SidebarMenuButton
             {...cursorGlowProps()}
-            className="group relative overflow-hidden w-full justify-start rounded-md border border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)] transition-[background-color,border-color,transform] duration-150 will-change-transform pr-20"
+            className={`group relative overflow-hidden w-full justify-start rounded-md border transition-[background-color,border-color,transform] duration-150 will-change-transform ${
+              isActive
+                ? "border-[oklch(0.72_0.25_300_/0.40)] bg-[oklch(0.72_0.25_300_/0.12)] text-foreground shadow-sm"
+                : "border-transparent hover:border-[oklch(0.72_0.25_300_/0.28)] hover:bg-[oklch(0.72_0.25_300_/0.06)]"
+            }`}
             tooltip={humanizeDate(chat.updatedAt || chat.createdAt)}
           >
             <span
@@ -218,7 +224,7 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
               }}
             />
             {editing ? (
-              <div className="relative w-full flex items-center gap-2">
+              <div className="relative w-full flex items-center gap-2 pr-8">
                 <input
                   ref={inputRef}
                   value={draftTitle}
@@ -238,7 +244,11 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
                     type="button"
                     className="p-1 rounded hover:bg-foreground/5"
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={commitRename}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      commitRename();
+                    }}
                     aria-label="Save"
                   >
                     <Check className="h-4 w-4" />
@@ -247,7 +257,9 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
                     type="button"
                     className="p-1 rounded hover:bg-foreground/5"
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       setEditing(false);
                       setDraftTitle(truncateTitle(chat.title || ""));
                     }}
@@ -258,7 +270,7 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
                 </div>
               </div>
             ) : (
-              <span className="relative  transition-transform duration-150">
+              <span className="relative transition-transform duration-150 truncate pr-8">
                 {truncateTitle(chat.title || "Untitled chat")}
               </span>
             )}
@@ -271,15 +283,19 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
             initial={{ x: 16, opacity: 0 }}
             animate={{ x: hovered ? 0 : 16, opacity: hovered ? 1 : 0 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="pointer-events-none absolute inset-y-0 right-2 flex items-center gap-1"
+            className="pointer-events-none absolute inset-y-0 right-1 flex items-center gap-1 z-10"
           >
             <button
               type="button"
-              className="pointer-events-auto p-1.5 rounded-md hover:bg-[oklch(0.72_0.25_300_/0.10)]"
+              className="pointer-events-auto p-1.5 rounded-md hover:bg-[oklch(0.72_0.25_300_/0.10)] transition-colors duration-150"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setEditing(true);
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
               }}
               aria-label="Rename"
               title="Rename"
@@ -288,13 +304,17 @@ const ChatListItem = ({ chat, index }: ChatListItemProps) => {
             </button>
             <button
               type="button"
-              className="pointer-events-auto p-1.5 rounded-md hover:bg-destructive/10 text-destructive"
+              className="pointer-events-auto p-1.5 rounded-md hover:bg-destructive/10 text-destructive transition-colors duration-150"
               onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 if (!window.confirm("Delete this chat? This cannot be undone."))
                   return;
                 deleteMutation.mutate({ threadId: chat.id });
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
               }}
               aria-label="Delete"
               title="Delete"
@@ -323,6 +343,12 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
   const router = useRouter();
   const { session } = useSessionStore();
   const navigate = router.navigate;
+
+  // Get current threadId from route params if we're on a chat page
+  const currentThreadId = useMatch({
+    from: "/_authenticated/chat/{-$threadId}",
+    select: (match) => match.params.threadId,
+  });
   const handleNewChat = () => {
     navigate({
       to: "/chat/{-$threadId}",
@@ -351,7 +377,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar className="border-r-0" {...props}>
-      <SidebarHeader className="relative before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:opacity-60 ">
+      <SidebarHeader>
         <div className="flex items-center justify-between p-2">
           <div className="flex items-center gap-3">
             <div className="hover-tilt flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.72_0.25_300)] text-white shadow-neon-purple">
@@ -471,7 +497,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
           </Link>
         </div>
       </SidebarHeader>
-      <SidebarContent className="relative before:pointer-events-none before:absolute before:inset-0 before:opacity-50 ">
+      <SidebarContent>
         <div className="flex flex-col gap-4">
           {isLoading ? (
             <SidebarChatListSkeleton />
@@ -487,7 +513,12 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                 <SidebarMenu>
                   <AnimatePresence initial={false}>
                     {groups.recent.map((chat, i) => (
-                      <ChatListItem chat={chat} index={i} key={chat.id} />
+                      <ChatListItem
+                        chat={chat}
+                        index={i}
+                        currentThreadId={currentThreadId}
+                        key={chat.id}
+                      />
                     ))}
                   </AnimatePresence>
                 </SidebarMenu>
@@ -501,7 +532,12 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                   <SidebarMenu>
                     <AnimatePresence initial={false}>
                       {groups.lastWeek.map((chat, i) => (
-                        <ChatListItem chat={chat} index={i} key={chat.id} />
+                        <ChatListItem
+                          chat={chat}
+                          index={i}
+                          currentThreadId={currentThreadId}
+                          key={chat.id}
+                        />
                       ))}
                     </AnimatePresence>
                   </SidebarMenu>
@@ -516,7 +552,12 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                   <SidebarMenu>
                     <AnimatePresence initial={false}>
                       {groups.lastMonth.map((chat, i) => (
-                        <ChatListItem chat={chat} index={i} key={chat.id} />
+                        <ChatListItem
+                          chat={chat}
+                          index={i}
+                          currentThreadId={currentThreadId}
+                          key={chat.id}
+                        />
                       ))}
                     </AnimatePresence>
                   </SidebarMenu>
@@ -531,7 +572,12 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
                   <SidebarMenu>
                     <AnimatePresence initial={false}>
                       {groups.previous.map((chat, i) => (
-                        <ChatListItem chat={chat} index={i} key={chat.id} />
+                        <ChatListItem
+                          chat={chat}
+                          index={i}
+                          currentThreadId={currentThreadId}
+                          key={chat.id}
+                        />
                       ))}
                     </AnimatePresence>
                   </SidebarMenu>
@@ -542,7 +588,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
         </div>
       </SidebarContent>
       <SidebarRail />
-      <SidebarFooter className="relative before:pointer-events-none before:absolute before:inset-0 before:opacity-60">
+      <SidebarFooter>
         <NavUser />
       </SidebarFooter>
     </Sidebar>

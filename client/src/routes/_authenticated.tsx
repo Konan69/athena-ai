@@ -94,7 +94,7 @@ const AuthenticatedLayout = () => {
         <div className="relative z-10 flex h-screen w-full overflow-hidden">
           <SidebarApp variant="inset" collapsible="offcanvas" />
           <main className="relative flex-1 overflow-hidden min-h-0">
-            <div className="sm:translate-y-4 mr-1 translate- bg-noise border-l sm:border sm:border-chat-border sm:rounded-t-md backdrop-blur-md overflow-hidden min-h-0 h-full">
+            <div className="sm:translate-y-3.5 mr-2 bg-noise border-l sm:border sm:border-chat-border sm:rounded-t-md backdrop-blur-md min-h-0 h-full w-full max-w-full overflow-x-hidden overflow-y-hidden">
               <Outlet />
             </div>
           </main>

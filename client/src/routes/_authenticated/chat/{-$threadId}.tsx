@@ -33,7 +33,8 @@ import {
   type PastedContent,
 } from "@/components/claude/claude-input";
 import { AVAILABLE_AGENTS } from "@/types/agents";
-import { useSessionStore } from "@/store/session.store";
+
+import { EmptyChatState } from "@/components/ai-elements/empty-chat-state";
 export const Route = createFileRoute("/_authenticated/chat/{-$threadId}")({
   component: ChatPage,
   errorComponent: ({ error, reset }) => {
@@ -250,6 +251,10 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
     handleSubmitMessage(base, extrasOnly);
   };
 
+  const handleSuggestionClick = (suggestion: string) => {
+    setInput(suggestion);
+  };
+
   const showSkeleton = Boolean(
     threadId &&
       threadReady && // Only show skeleton when thread is ready
@@ -264,106 +269,114 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto w-full px-4 py-8 space-y-4">
-          {isErrorFetching || error ? (
-            <ErrorState
-              message={
-                error?.message || "Failed to load messages. Please retry."
-              }
-            />
-          ) : showSkeleton ? (
-            <div className="max-w-2xl mx-auto w-full px-4 py-8 space-y-3">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-5/6" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-2/3" />
-            </div>
-          ) : messages.length === 0 && !isCreatingAndSending ? (
-            <div className="text-center text-muted-foreground mt-8">
-              <h2 className="text-2xl font-bold mb-2 text-foreground">
-                Chat with AI Assistant
-              </h2>
-              <p>Start a conversation by typing a message below.</p>
-              {threadId && (
-                <p className="text-sm mt-2">Thread ID: {threadId}</p>
+      {/* Conversation fills all available space above the input */}
+      <div className="flex-1 min-h-0">
+        <Conversation className="w-full h-full">
+          <ConversationContent className="h-full">
+            <div className="max-w-3xl mx-auto w-full px-4 pt-2 space-y-4">
+              {isErrorFetching || error ? (
+                <ErrorState
+                  message={
+                    error?.message || "Failed to load messages. Please retry."
+                  }
+                />
+              ) : showSkeleton ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-full space-y-3">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                </div>
+              ) : messages.length === 0 && !isCreatingAndSending ? (
+                <EmptyChatState
+                  onSuggestionClick={handleSuggestionClick}
+                  threadId={threadId}
+                />
+              ) : (
+                <>
+                  {messages
+                    .filter(
+                      (m) =>
+                        !(
+                          m.role === "user" &&
+                          (!m.content || m.content.trim() === "")
+                        )
+                    )
+                    .map((message, messageIndex) => {
+                      const isLastMessage =
+                        messageIndex === messages.length - 1;
+                      return (
+                        <div key={message.id}>
+                          <Message
+                            from={
+                              message.role as "user" | "assistant" | "system"
+                            }
+                          >
+                            <MessageContent>
+                              {message.role === "assistant" ? (
+                                <Response key={message.id}>
+                                  {message.content}
+                                </Response>
+                              ) : (
+                                message.content
+                              )}
+                            </MessageContent>
+                            {message.role === "user" && (
+                              <MessageAvatar
+                                src={user?.image || ""}
+                                name={user?.name}
+                              />
+                            )}
+                          </Message>
+                          {message.role === "assistant" && isLastMessage && (
+                            <Actions className="mt-[-25px]">
+                              <Action
+                                onClick={() => {
+                                  /* TODO: regenerate */
+                                }}
+                                label="Retry"
+                              >
+                                <RefreshCcwIcon className="size-3" />
+                              </Action>
+                              <Action
+                                onClick={() =>
+                                  navigator.clipboard.writeText(message.content)
+                                }
+                                label="Copy"
+                              >
+                                <CopyIcon className="size-3" />
+                              </Action>
+                            </Actions>
+                          )}
+                        </div>
+                      );
+                    })}
+                  {shouldShowLoading && (
+                    <Message from="assistant">
+                      <MessageContent>
+                        <div className="flex justify-start py-2">
+                          <LoaderFive text="Thinking…" />
+                        </div>
+                      </MessageContent>
+                    </Message>
+                  )}
+                </>
               )}
             </div>
-          ) : (
-            <Conversation className="relative w-full">
-              <ConversationContent>
-                {messages
-                  .filter(
-                    (m) =>
-                      !(
-                        m.role === "user" &&
-                        (!m.content || m.content.trim() === "")
-                      )
-                  )
-                  .map((message, messageIndex) => {
-                    const isLastMessage = messageIndex === messages.length - 1;
-                    return (
-                      <div key={message.id}>
-                        <Message
-                          from={message.role as "user" | "assistant" | "system"}
-                        >
-                          <MessageContent>
-                            {message.role === "assistant" ? (
-                              <Response>{message.content}</Response>
-                            ) : (
-                              message.content
-                            )}
-                          </MessageContent>
-                          {message.role === "user" && (
-                            <MessageAvatar
-                              src={user?.image || ""}
-                              name={user?.name}
-                            />
-                          )}
-                        </Message>
-                        {message.role === "assistant" && isLastMessage && (
-                          <Actions className="mt-[-25px]">
-                            <Action
-                              onClick={() => {
-                                /* TODO: regenerate */
-                              }}
-                              label="Retry"
-                            >
-                              <RefreshCcwIcon className="size-3" />
-                            </Action>
-                            <Action
-                              onClick={() =>
-                                navigator.clipboard.writeText(message.content)
-                              }
-                              label="Copy"
-                            >
-                              <CopyIcon className="size-3" />
-                            </Action>
-                          </Actions>
-                        )}
-                      </div>
-                    );
-                  })}
-                {shouldShowLoading && (
-                  <Message from="assistant">
-                    <MessageContent>
-                      <div className="flex justify-start py-2">
-                        <LoaderFive text="Thinking…" />
-                      </div>
-                    </MessageContent>
-                  </Message>
-                )}
-              </ConversationContent>
-              <ConversationScrollButton />
-            </Conversation>
-          )}
-        </div>
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
       </div>
 
-      <div className="max-w-2xl mx-auto w-full px-4 mb-6">
+      <div className="max-w-4xl mx-auto w-full px-4 mb-8">
         <ClaudeChatInput
           onSendMessage={handleClaudeSend}
           agents={AVAILABLE_AGENTS}
+          prefill={input}
+          status={status}
+          onStop={() => stop()}
         />
       </div>
     </div>
