@@ -7,7 +7,7 @@ import * as schema from "../db/schemas";
 // Import dedicated test database setup
 import { testDb, testSql } from "../db/test";
 // Import services for dependency injection
-import { createAgentProcedures } from "../modules/agents/procedures";
+import { createAgentProcedures } from "../modules/agents/routes/procedures";
 import { AgentService } from "../modules/agents/agent.service";
 import { createLibraryProcedures } from "../modules/library/routes/procedures";
 import { LibraryService } from "../modules/library/libraryService";

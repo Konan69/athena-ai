@@ -39,7 +39,7 @@ export class AgentChatService {
       orgId: request.organizationId,
       libraryItemIds: knowledgeItems
     });
-    runtimeContext.set("filter", filter);
+    runtimeContext.set("filter", filter); // TODO: Review this, could fail here 
 
     // Select the appropriate agent based on type
     const agentName = this.getAgentNameByType(agentConfig.agentType);
@@ -58,7 +58,7 @@ export class AgentChatService {
       runtimeContext,
       memory: {
         thread: `agent-${request.agentId}`,
-        resource: request.userId,
+        resource: request.userId, // TODO: Problem, should be specific to the actual client session using it, external user.
       },
     });
 

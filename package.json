@@ -2,6 +2,14 @@
   "name": "@athena-ai/root",
   "private": true,
   "packageManager": "pnpm@10.0.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "@tailwindcss/oxide",
+      "esbuild",
+      "protobufjs"
+    ]
+  },
   "scripts": {
     "prepare": "echo 'add husky'",
     "dev": "turbo run dev db:studio --parallel",

@@ -3,7 +3,7 @@ import { chatProcedures } from "../modules/chat/routes/procedures";
 import { libraryProcedures } from "../modules/library/routes/procedures";
 import { trainingEvents } from "../../src/modules/RAG";
 import { organizationProcedures } from "../modules/organization/routes/procedures";
-import { agentProcedures } from "../modules/agents/procedures";
+import { agentProcedures } from "../modules/agents/routes/procedures";
 
 // NOTE: DO NOT = USE IMPORT ALIAS IN TRPC ROUTER FILES
 // E.G. import { anything } from "@src/server/trpc/index";

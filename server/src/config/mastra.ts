@@ -29,6 +29,6 @@ export const memory = new Memory({
 
 export const mastra = new MastraClient({
 	baseUrl: env.MASTRA_URL, //TODO: Fix in prod
-	abortSignal: controller.signal,
+	abortSignal: controller,
 });
 

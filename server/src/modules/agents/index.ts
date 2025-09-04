@@ -1,4 +1,4 @@
-import { agentProcedures } from "./procedures";
+import { agentProcedures } from "./routes/procedures";
 import agentChatRouter from "./routes/chat";
 
 export const agentModule = {

@@ -1,6 +1,5 @@
 import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
-import { webSearchTool } from "../tools/web-search-tool";
 import { vectorQueryTool } from "../tools/rag-tools"
 import { memory } from "../../config/memory";
 import { createSupportAgentPrompt } from "../prompts/support-agent";

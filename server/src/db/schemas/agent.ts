@@ -11,7 +11,6 @@ import {
 import { type InferSelectModel } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { organization } from "./organization";
-import { user } from "./user";
 import { libraryItem } from "./library";
 import type {
   AgentMetadata,
@@ -31,10 +30,6 @@ export const agent = pgTable("agent", {
   organizationId: text()
     .notNull()
     .references(() => organization.id, { onDelete: "cascade" }),
-  userId: text()
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-
   // Base configuration
   companyName: text(),
   description: text(),
@@ -77,10 +72,6 @@ export const agentRelations = relations(agent, ({ one, many }) => ({
   organization: one(organization, {
     fields: [agent.organizationId],
     references: [organization.id],
-  }),
-  user: one(user, {
-    fields: [agent.userId],
-    references: [user.id],
   }),
   knowledge: many(agentKnowledge),
 }));

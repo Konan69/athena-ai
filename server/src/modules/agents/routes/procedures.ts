@@ -1,12 +1,12 @@
-import { createTRPCRouter, protectedProcedure } from "../../trpc/base";
-import { AgentService, agentService } from "./agent.service";
+import { createTRPCRouter, protectedProcedure } from "../../../trpc/base";
+import { AgentService, agentService } from "../agent.service";
 import {
   createAgentSchema,
   updateAgentSchema,
   getAgentSchema,
   addKnowledgeSchema,
   removeKnowledgeSchema,
-} from "./validators/agentValidator";
+} from "../validators/agentValidator";
 
 // Create agent router factory that accepts service dependency
 export const createAgentProcedures = (service: AgentService = agentService) => {
