@@ -1,19 +1,6 @@
 import { createEnv } from "@t3-oss/env-core";
-import { env as bunEnv } from "bun";
+import { env as Bunenv } from "bun";
 import { z } from "zod";
-
-/**
- * Get environment variables based on runtime
- * Uses Bun.env if available, falls back to process.env
- */
-function getRuntimeEnv() {
-  // Check if we're in Bun runtime
-  if (typeof Bun !== "undefined") {
-    // Dynamic import to avoid bundler issues
-    return (globalThis as any).Bun?.env || process.env;
-  }
-  return process.env;
-}
 
 /**
  * Environment variable schema and loader
@@ -32,17 +19,19 @@ export const env = createEnv({
     DATABASE_URL: z.string().url(),
     CLIENT_URL: z.string().url(),
     OPENAI_API_KEY: z.string().min(1),
-    NODE_ENV: z.enum(["development", "production"]),
+    NODE_ENV: z.enum(["development", "production", "test"]),
     BETTER_AUTH_SECRET: z.string().min(1),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
     CLOUDFLARE_ACCT_ID: z.string().min(1),
     CLOUDFLARE_API_KEY: z.string().min(1),
     CLOUDFLARE_SECRET_KEY: z.string().min(1),
+    TEST_CLOUD_DB_URL: z.string().min(1),
+    TEST_LOCAL_DB_URL: z.string().min(1),
     S3_API_URL: z.string().url(),
     S3_BUCKET_NAME: z.string().min(1),
     REDIS_URL: z.string().min(1),
   },
-  runtimeEnv: getRuntimeEnv(),
+  runtimeEnv: Bunenv,
   emptyStringAsUndefined: true,
 });

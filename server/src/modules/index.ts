@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { chatModule } from "./chat";
 import { libraryModule } from "./library";
 import { organizationModule } from "./organization";
+import { agentModule } from "./agents";
 import { AnyTRPCRouter } from "@trpc/server";
 import { APP } from "../types";
 
@@ -16,4 +17,5 @@ export const modules: Module[] = [
   { ...chatModule },
   { ...libraryModule },
   { ...organizationModule },
+  { ...agentModule },
 ];

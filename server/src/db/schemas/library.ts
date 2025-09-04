@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { pgEnum } from "drizzle-orm/pg-core";
 import { InferSelectModel, relations, sql } from "drizzle-orm";
 import { organization } from "./organization";
+import { agentKnowledge } from "./agent";
 
 export const libraryItemStatus = pgEnum("status", [
   "processing",
@@ -48,11 +49,13 @@ export const libraryItem = pgTable("library_item", {
     .references(() => library.id, { onDelete: "cascade" }),
 });
 
-export const libraryItemRelations = relations(libraryItem, ({ one }) => ({
+export const libraryItemRelations = relations(libraryItem, ({ one, many }) => ({
   library: one(library, {
     fields: [libraryItem.libraryId],
     references: [library.id],
   }),
+  // Add agent associations for bidirectional relationship
+  agentKnowledge: many(agentKnowledge),
 }));
 
 

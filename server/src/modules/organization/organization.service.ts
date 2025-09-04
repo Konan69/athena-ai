@@ -4,6 +4,7 @@ import { organization, member, invitation, session } from "../../db/schemas";
 import { user } from "../../db/schemas/user";
 import { auth } from "../auth";
 import { ServiceErrors } from "../../lib/trpc-errors";
+import type { Database } from "../../types";
 import {
 	createOrgSchema,
 	inviteMemberServiceSchema,
@@ -15,10 +16,15 @@ import {
 } from "./validators/organizationValidator";
 
 class OrganizationService {
+	private db: Database;
+
+	constructor(database: Database = db) {
+		this.db = database;
+	}
 
 	async getUserOrganizations({ userId }: { userId: string }) {
 		// todo
-		const memberCountSubquery = db
+		const memberCountSubquery = this.db
 			.select({
 				organizationId: member.organizationId,
 				memberCount: count(member.id).as("memberCount"),
@@ -27,7 +33,7 @@ class OrganizationService {
 			.groupBy(member.organizationId)
 			.as("memberCounts");
 
-		const userOrganizations = await db
+		const userOrganizations = await this.db
 			.select({
 				id: organization.id,
 				name: organization.name,
@@ -76,7 +82,7 @@ class OrganizationService {
 
 	async getOrganizationMembers(data: GetMembersInput) {
 		// Get all members with user details in a single query
-		const members = await db
+		const members = await this.db
 			.select({
 				id: member.id,
 				role: member.role,
@@ -120,7 +126,7 @@ class OrganizationService {
 
 	async inviteMember(data: InviteMemberServiceInput) {
 		// Check if user is a member with invite permissions
-		const userMember = await db
+		const userMember = await this.db
 			.select()
 			.from(member)
 			.where(and(eq(member.organizationId, data.organizationId), eq(member.userId, data.userId)))
@@ -161,11 +167,11 @@ class OrganizationService {
 
 	// TODO: test
 	async getActiveOrganization(userId: string) {
-		const lastSession = await db.select().from(session).where(eq(session.userId, userId)).orderBy(desc(session.updatedAt)).limit(1);
+		const lastSession = await this.db.select().from(session).where(eq(session.userId, userId)).orderBy(desc(session.updatedAt)).limit(1);
 
 		if (lastSession[0]?.activeOrganizationId) {
 			// Verify they still have access
-			const isMember = await db.select().from(member).where(and(eq(member.userId, userId), eq(member.organizationId, lastSession[0].activeOrganizationId)));
+			const isMember = await this.db.select().from(member).where(and(eq(member.userId, userId), eq(member.organizationId, lastSession[0].activeOrganizationId)));
 
 			if (isMember.length > 0) {
 				return { id: lastSession[0].activeOrganizationId };
@@ -173,7 +179,7 @@ class OrganizationService {
 		}
 
 		// Fallback to first available org
-		const firstOrg = await db.select().from(member).where(eq(member.userId, userId)).limit(1);
+		const firstOrg = await this.db.select().from(member).where(eq(member.userId, userId)).limit(1);
 
 		return firstOrg[0] ? { id: firstOrg[0].organizationId } : null;
 	}
@@ -181,4 +187,5 @@ class OrganizationService {
 
 const organizationService = new OrganizationService();
 
+export { OrganizationService };
 export default organizationService;

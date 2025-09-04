@@ -1,2 +1,10 @@
 [run]
 env = true
+
+[test]
+timeout = 30000
+preload = ["./src/__tests__/setup.ts"]
+
+[test.env]
+NODE_ENV = "test"
+TEST_DATABASE_URL = "postgresql://test_user:test_password@localhost:5433/athena_test"

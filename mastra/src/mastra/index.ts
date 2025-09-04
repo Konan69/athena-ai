@@ -3,6 +3,8 @@ import { PinoLogger } from "@mastra/loggers";
 import { Mastra } from "@mastra/core/mastra";
 import { researchAgent } from "./agents/research-agent";
 import { athenaAI } from "./agents/athena";
+import { supportAgent } from "./agents/support-agent";
+import { whatsappAgent } from "./agents/whatsapp-agent";
 import { researchWorkflow } from "./workflows/research-workflow";
 import { env } from "../config/env";
 import { sharedPgStore, vectorStore } from "../config/storage";
@@ -30,6 +32,8 @@ export const mastra = new Mastra({
     athenaAI,
     ragAgent,
     researchAgent,
+    supportAgent,
+    whatsappAgent,
   },
   storage: sharedPgStore,
   logger: new PinoLogger({

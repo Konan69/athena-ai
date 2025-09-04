@@ -1,0 +1,36 @@
+services:
+  test-postgres:
+    image: pgvector/pgvector:pg17
+    container_name: athena-test-db
+    environment:
+      POSTGRES_DB: athena_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    command: >
+      sh -c "
+        docker-entrypoint.sh postgres &
+        pid=$!;
+        echo 'Waiting for Postgres...';
+        until pg_isready -U test_user -d athena_test; do sleep 1; done;
+        psql -U test_user -d athena_test -c 'CREATE EXTENSION IF NOT EXISTS vector;';
+        wait $pid
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d athena_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+volumes:
+  test_postgres_data:
+
+networks:
+  test-network:
+    driver: bridge

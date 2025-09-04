@@ -5,14 +5,34 @@ import { CreateLibraryItemPayload } from "./libraryValidator";
 import { desc, eq } from "drizzle-orm";
 import { ServiceErrors } from "../../lib/trpc-errors";
 import ragService from "../RAG/ragService";
+import type { Database } from "../../types";
 
 export class LibraryService {
+  private db: Database;
+
+  constructor(database: Database = db) {
+    this.db = database;
+  }
   async getLibraryItems(organizationId: string) {
-    const userLibrary = await db.query.library.findFirst({
+    const userLibrary = await this.db.query.library.findFirst({
       where: eq(library.organizationId, organizationId),
       with: {
         items: {
           orderBy: [desc(libraryItem.createdAt)],
+          with: {
+            agentKnowledge: {
+              with: {
+                agent: {
+                  columns: {
+                    id: true,
+                    name: true,
+                    agentType: true,
+                    isActive: true,
+                  },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -20,7 +40,7 @@ export class LibraryService {
   }
 
   async createLibraryItem(organizationId: string, payload: CreateLibraryItemPayload) {
-    const orgLibrary = await db.query.library.findFirst({
+    const orgLibrary = await this.db.query.library.findFirst({
       where: eq(library.organizationId, organizationId),
     });
 
@@ -28,7 +48,7 @@ export class LibraryService {
       throw ServiceErrors.notFound("Organization library");
     }
 
-    const data = await db
+    const data = await this.db
       .insert(libraryItem)
       .values({
         title: payload.title,

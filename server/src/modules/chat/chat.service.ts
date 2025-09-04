@@ -6,6 +6,7 @@ import { ChatRequest } from "./validators";
 import { composeUserMessage } from "./utils/compose";
 import { memory } from "../../config/mastra";
 import { ServiceErrors } from "../../lib/trpc-errors";
+import type { Database } from "../../types";
 import {
   CreateChatInput,
   GetChatsInput,
@@ -15,6 +16,11 @@ import {
 } from "./validators/chatValidator";
 
 export class ChatService {
+  private db: Database;
+
+  constructor(database: Database = db) {
+    this.db = database;
+  }
   async processChat(request: ChatRequest & { resourceId: string; organizationId: string }) {
     const { message, threadId, resourceId, organizationId, extras, runtimeContext, agentId } = request;
 
@@ -39,7 +45,7 @@ export class ChatService {
 
 
 
-    db
+    this.db
       .update(mastraThreads)
       .set({
         organizationId: organizationId,
@@ -55,7 +61,7 @@ export class ChatService {
   async getChatMessages(input: GetChatMessagesInput) {
     // Single query: verify thread ownership and set orgId if missing
     // Uses CASE to conditionally update organizationId in one atomic operation
-    const thread = await db
+    const thread = await this.db
       .select({
         id: mastraThreads.id,
         organizationId: mastraThreads.organizationId,
@@ -83,7 +89,7 @@ export class ChatService {
 
     // If organizationId is null, update it atomically
     if (!currentThread.organizationId) {
-      await db
+      await this.db
         .update(mastraThreads)
         .set({ organizationId: input.organizationId })
         .where(
@@ -116,7 +122,7 @@ export class ChatService {
       //   );
 
       // fetch all threads for this user and organization in a single query
-      const chats = await db
+      const chats = await this.db
         .select()
         .from(mastraThreads)
         .where(
@@ -138,7 +144,7 @@ export class ChatService {
   async renameChat(input: RenameChatInput) {
 
     const now = new Date().toISOString();
-    const updated = await db
+    const updated = await this.db
       .update(mastraThreads)
       .set({
         title: input.title,
@@ -164,12 +170,12 @@ export class ChatService {
   async deleteChat(input: DeleteChatInput) {
 
     // Delete related messages first
-    await db
+    await this.db
       .delete(mastraMessages)
       .where(eq(mastraMessages.threadId, input.threadId));
 
     // Delete the thread (scoped to user and organization)
-    const deleted = await db
+    const deleted = await this.db
       .delete(mastraThreads)
       .where(
         and(
@@ -178,7 +184,7 @@ export class ChatService {
           eq(mastraThreads.organizationId, input.organizationId)
         )
       )
-      .returning({ id: mastraThreads.id });
+      .returning();
 
     if (!deleted.length) {
       throw ServiceErrors.notFound("Thread");

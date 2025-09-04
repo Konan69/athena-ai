@@ -1,4 +1,7 @@
-import z from "zod";
+
+import type { SupportConfig, WhatsAppConfig, AgentMetadata } from "../modules/agents/interfaces";
+
+import type { Agent } from "../db/schemas/agent";
 
 export interface AgentOption {
 	id: string;
@@ -6,7 +9,6 @@ export interface AgentOption {
 	description: string;
 	badge?: string;
 }
-
 
 export const AVAILABLE_AGENTS: AgentOption[] = [
 	{
@@ -25,7 +27,24 @@ export const AVAILABLE_AGENTS: AgentOption[] = [
 		name: "Research Agent",
 		description: "Comprehensive web research assistant",
 	},
+	{
+		id: "supportAgent",
+		name: "Support Agent",
+		description: "Customer support specialist",
+	},
+	{
+		id: "whatsappAgent",
+		name: "WhatsApp Agent",
+		description: "WhatsApp business assistant",
+	},
 ] as const;
 
 
-export const AgentIds = ["athenaAI", "ragAgent", "researchAgent"] as const;
+export const AgentIds = ["athenaAI", "ragAgent", "researchAgent", "supportAgent", "whatsappAgent"] as const;
+
+export type {
+	Agent,
+	AgentMetadata,
+	SupportConfig,
+	WhatsAppConfig,
+}

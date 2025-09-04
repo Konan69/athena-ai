@@ -3,6 +3,7 @@ import { chatProcedures } from "../modules/chat/routes/procedures";
 import { libraryProcedures } from "../modules/library/routes/procedures";
 import { trainingEvents } from "../../src/modules/RAG";
 import { organizationProcedures } from "../modules/organization/routes/procedures";
+import { agentProcedures } from "../modules/agents/procedures";
 
 // NOTE: DO NOT = USE IMPORT ALIAS IN TRPC ROUTER FILES
 // E.G. import { anything } from "@src/server/trpc/index";
@@ -13,6 +14,7 @@ import { organizationProcedures } from "../modules/organization/routes/procedure
 export const appRouter = createTRPCRouter({
   chat: chatProcedures,
   library: libraryProcedures,
+  agents: agentProcedures,
   // SSE subscription for all RAG events for current user (global toast style)
   trainingEvents: trainingEvents,
   organization: organizationProcedures,
