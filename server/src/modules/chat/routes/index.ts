@@ -14,6 +14,10 @@ chatRouter.post("/", validateChatRequest, async (c) => {
     const runtimeContext = createRuntimeContext();
     const resourceId = c.var.user?.id;
     const orgId = c.var.activeOrganizationId;
+    const activeOrganizationId = c.var.activeOrganizationId!;
+    runtimeContext.set("organizationId", activeOrganizationId);
+    runtimeContext.set("userId", resourceId);
+    runtimeContext.set("threadId", body.threadId);
     runtimeContext.set("resourceId", resourceId);
     runtimeContext.set("sessionId", c.var.session.id);
     // Add orgId filter for vector queries to ensure tenant isolation

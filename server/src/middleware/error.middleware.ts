@@ -1,9 +1,9 @@
-import { Context } from "hono";
-import { Next } from "hono/types";
-import { createMiddleware } from "hono/factory";
+  import { env } from '../config/env'
+import { PostHog } from 'posthog-node'
 import { ZodError } from "zod";
 import type { ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
+
 
 // Create a standalone logger for error handling
 import pino from "pino";
@@ -38,8 +38,17 @@ export const errorHandler: ErrorHandler = (err, c) => {
   } else if (err instanceof Error) {
     errorMessage = err.message;
   }
-
-  // Log the error with full details
+  const posthog = new PostHog(env.POSTHOG_PUBLIC_KEY, { host: 'https://us.i.posthog.com' })
+  
+  posthog.captureException(new Error(err.message, { cause: err }), 'user_distinct_id_with_err_rethrow', {
+    path: c.req.path,
+    method: c.req.method,
+    url: c.req.url,
+    headers: c.req.header(),
+    stack: err.stack,
+  })
+  posthog.shutdown() 
+ 
   errorLogger.error(
     {
       err,

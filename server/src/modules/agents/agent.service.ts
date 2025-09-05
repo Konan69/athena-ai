@@ -29,14 +29,11 @@ export class AgentService {
     // Validate organization access by checking user membership
     await this.validateUserOrganizationAccess(userId, organizationId);
 
-    const agentData = {
-      ...payload,
-      organizationId,
-      userId,
-      updatedAt: new Date().toISOString(),
-    };
 
-    const [newAgent] = await this.db.insert(agent).values(agentData).returning();
+    const [newAgent] = await this.db.insert(agent).values({
+            ...payload,
+      organizationId,
+    }).returning();
 
     if (!newAgent) {
       throw new TRPCError({

@@ -4,6 +4,7 @@ import { mastra } from "../../config/mastra";
 import { agentService } from "./agent.service";
 import { TRPCError } from "@trpc/server";
 import type { AgentChatRequest } from "./interfaces";
+import { nanoid } from "nanoid";
 
 export class AgentChatService {
   async executeAgentChat(request: AgentChatRequest) {
@@ -27,11 +28,14 @@ export class AgentChatService {
       });
     }
 
+    const threadId = nanoid();
     // Create runtime context with agent config and knowledge filter
     const runtimeContext = createRuntimeContext();
     runtimeContext.set("agent", agentConfig);
     runtimeContext.set("resourceId", request.userId);
-    runtimeContext.set("sessionId", `agent-${request.agentId}-${Date.now()}`);
+    runtimeContext.set("organizationId", request.organizationId);
+    runtimeContext.set("userId", request.userId);
+    runtimeContext.set("threadId", threadId );
 
     // Get agent's knowledge items for RAG filtering
     const knowledgeItems = await agentService.getAgentKnowledgeItemIds(request.agentId);
@@ -57,7 +61,7 @@ export class AgentChatService {
       messages: request.message,
       runtimeContext,
       memory: {
-        thread: `agent-${request.agentId}`,
+        thread: threadId,
         resource: request.userId, // TODO: Problem, should be specific to the actual client session using it, external user.
       },
     });

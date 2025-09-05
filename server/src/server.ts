@@ -12,6 +12,7 @@ import { appRouter } from "./trpc";
 import { modules } from "./modules";
 import { authMiddleware } from "./middleware/auth.middleware";
 import { initializeServices } from "./config/init";
+import { posthogServerMiddleware } from "./middleware/observability";
 
 const PORT = env.PORT;
 
@@ -34,7 +35,8 @@ export const app = createApp()
   .on(["POST", "GET"], "/api/auth/*", (c) => {
     return auth.handler(c.req.raw);
   })
-  .use(authMiddleware);
+  .use(authMiddleware)
+  .use('*', posthogServerMiddleware)
 
 // register authenticated routes
 const routes = modules.map((m) => {
@@ -43,6 +45,7 @@ const routes = modules.map((m) => {
   }
 });
 routes;
+
 
 app
   .use(

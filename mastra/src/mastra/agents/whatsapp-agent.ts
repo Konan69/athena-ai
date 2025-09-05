@@ -1,8 +1,8 @@
-import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
 import { vectorQueryTool } from "../tools/rag-tools"
 import { memory } from "../../config/memory";
 import { createWhatsAppAgentPrompt } from "../prompts/whatsapp-agent";
+import { createTracedModel } from "../lib/factory";
 import type { Agent as AgentConfig } from "@athena-ai/server/types/agents";
 
 export const whatsappAgent = new Agent({
@@ -14,7 +14,8 @@ export const whatsappAgent = new Agent({
     }
     return createWhatsAppAgentPrompt(agent);
   },
-  model: openai("gpt-4o"),
+  model: ({ runtimeContext }) =>
+    createTracedModel({ runtimeContext }),
   tools: { vectorQueryTool },
   memory
 });

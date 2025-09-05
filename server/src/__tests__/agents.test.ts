@@ -29,7 +29,6 @@ describe("Agent Integration Tests", () => {
       expect(result.description).toBe(agentData.description);
       expect(result.companyName).toBe(agentData.companyName);
       expect(result.organizationId).toBe(org.id);
-      expect(result.userId).toBe(user.id);
       expect(result.isActive).toBe(true);
 
       // Verify in database

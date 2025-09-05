@@ -1,5 +1,5 @@
 import { basePrompt } from "./base";
-import type { Agent } from "../../../server/src/db/schemas/agent";
+import type { Agent } from "@athena-ai/server/types/agents";
 
 export const createSupportAgentPrompt = (agent: Agent) => {
   const basePersonality = agent.personalityTraits?.length

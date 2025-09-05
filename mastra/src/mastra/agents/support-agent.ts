@@ -1,8 +1,8 @@
-import { openai } from "@ai-sdk/openai";
 import { Agent } from "@mastra/core/agent";
 import { vectorQueryTool } from "../tools/rag-tools"
 import { memory } from "../../config/memory";
 import { createSupportAgentPrompt } from "../prompts/support-agent";
+import { createTracedModel } from "../lib/factory";
 import type { Agent as AgentConfig } from "@athena-ai/server/types/agents";
 
 export const supportAgent = new Agent({
@@ -14,7 +14,8 @@ export const supportAgent = new Agent({
     }
     return createSupportAgentPrompt(agent);
   },
-  model: openai("gpt-4o"),
+  model: ({ runtimeContext }) =>
+    createTracedModel({ runtimeContext }),
   tools: { vectorQueryTool },
   memory,
 });

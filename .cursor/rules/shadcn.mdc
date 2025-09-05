@@ -1,7 +1,5 @@
 ---
-description:
-globs:
-alwaysApply: true
+alwaysApply: false
 ---
 
 General Rule\
@@ -18,4 +16,162 @@ Retrieve the Code:\
 For a single component, call get_component(component_name).\
 For a composite block, call get_block(block_name).\
 Implement Correctly: Integrate the retrieved code into the application, customizing it with the necessary props and logic to fulfill the user's request.\
-}
+
+If You are analyzing requirements for a complex UI build using shadcn MCP.
+
+INPUT: User request for a complete feature/section
+
+STEPS:
+
+1. Call mcp**shadcn**get_project_registries
+
+   - Note all available registries
+   - If multiple, use appropriate or ask user
+
+2. Break down the request into components needed
+   Example: "login form" needs:
+
+   - Form (form validation)
+   - Input (email, password fields)
+   - Button (submit)
+   - Label (field labels)
+   - Card (container)
+   - Alert (error messages)
+
+3. For EACH identified component:
+
+   - Call mcp**shadcn**search_items_in_registries
+   - Verify it exists in registry
+   - Note the exact name
+
+4. OUTPUT to design-docs/[task-name]/requirements.md:
+
+   ```markdown
+   ## Feature: [Name]
+
+   ## Components Required:
+
+   - form (validation and submission)
+   - input (email and password fields)
+   - button (submit action)
+   - card (form container)
+   - alert (error display)
+
+   ## Component Hierarchy:
+
+   Card
+   └── Form
+   ├── Label + Input (email)
+   ├── Label + Input (password)
+   ├── Button (submit)
+   └── Alert (errors)
+
+       	 You are researching shadcn components for implementation.
+   ```
+
+INPUT: design-docs/[task-name]/requirements.md
+
+STEPS:
+
+1. Read the requirements file for component list
+
+2. FOR EACH component in the list:
+   a. Call mcp**shadcn**view_items_in_registries
+
+   - Get full implementation details
+   - Note all file dependencies
+
+   b. Call mcp**shadcn**get_item_examples_from_registries
+
+   - Query: "[component]-demo"
+   - Get the most relevant example
+   - If form-related, get validation examples
+   - If data-related, get loading state examples
+
+3. Call mcp**shadcn**get_add_command_for_items
+
+   - Get installation for ALL components at once
+
+4. OUTPUT to design-docs/[task-name]/component-research.md:
+
+   ````markdown
+   ## Installation Commands:
+
+   ```bash
+   npx shadcn@latest add form input button card alert label
+
+   Component: Form
+   Implementation:
+   [code from view_items]
+   Best Example:
+   [code from examples - specifically form-with-validation-demo]
+   Key Props: onSubmit, form control
+   Component: Input
+   Implementation:
+   [code]
+   Best Example:
+   [email/password example]
+   Key Props: type, placeholder, required
+   [... continue for all components]
+   ```
+   ````
+
+You are building the final implementation using researched components.
+
+INPUT:
+
+- design-docs/[task-name]/requirements.md
+- design-docs/[task-name]/component-research.md
+
+STEPS:
+
+1. Read both input files
+
+2. Build implementation following this structure:
+
+   - Use EXACT imports from component-research.md
+   - Follow hierarchy from requirements.md
+   - Adapt examples from research to match use case
+   - Add proper TypeScript types
+   - Include state management (useState, form hooks)
+   - Add error handling
+
+3. Call mcp**shadcn**get_audit_checklist
+
+   - Verify your implementation follows best practices
+
+4. OUTPUT Complete implementation:
+
+   ```tsx
+   // All necessary imports
+   import {
+     Form,
+     FormControl,
+     FormField,
+     FormItem,
+     FormLabel,
+     FormMessage,
+   } from "@/components/ui/form";
+   import { Input } from "@/components/ui/input";
+   import { Button } from "@/components/ui/button";
+   import {
+     Card,
+     CardHeader,
+     CardTitle,
+     CardContent,
+   } from "@/components/ui/card";
+   import { Alert, AlertDescription } from "@/components/ui/alert";
+
+   // Complete, working implementation
+   export function LoginForm() {
+     // Full implementation based on researched components
+     // Properly typed, with validation
+     // Ready to paste and use
+   }
+   ```
+
+Also output setup instructions:
+
+Installation commands needed
+Where to add the component
+Any additional setup (providers, configs)

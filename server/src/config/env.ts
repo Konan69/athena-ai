@@ -31,6 +31,7 @@ export const env = createEnv({
     S3_API_URL: z.string().url(),
     S3_BUCKET_NAME: z.string().min(1),
     REDIS_URL: z.string().min(1),
+    POSTHOG_PUBLIC_KEY: z.string().min(1),
   },
   runtimeEnv: Bunenv,
   emptyStringAsUndefined: true,

@@ -45,6 +45,9 @@ export type MastraRuntimeContext = {
   resourceId: string;
   sessionId?: string;
   filter: string;
+  userId: string;
+  threadId: string;
+  organizationId: string;
 };
 
 export type { LibraryItem } from "./library";

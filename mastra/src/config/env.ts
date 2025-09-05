@@ -24,6 +24,7 @@ export const env = createEnv({
 			.enum(["exa", "brave"])
 			.describe("The web search provider to use"),
 		PROMPTS_PATH: z.string().optional(),
+	POSTHOG_PUBLIC_KEY: z.string().min(1),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,
