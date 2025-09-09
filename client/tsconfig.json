@@ -34,6 +34,12 @@
       ],
       "@/src/*": [
         "./src/*"
+      ],
+      "@athena-ai/server": [
+        "../server/src/server.ts"
+      ],
+      "@athena-ai/server/*": [
+        "../server/src/*"
       ]
     }
   }

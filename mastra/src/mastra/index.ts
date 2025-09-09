@@ -9,19 +9,20 @@ import { researchWorkflow } from "./workflows/research-workflow";
 import { env } from "../config/env";
 import { sharedPgStore, vectorStore } from "../config/storage";
 import { ragAgent } from "./agents/rag-agent";
+import { chatRoute } from '@mastra/ai-sdk';
 
-export const mcp = new MCPClient({
-  servers: {
-    filesystem: {
-      command: "npx",
-      args: [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/Users/username/Downloads",
-      ],
-    },
-  },
-});
+// export const mcp = new MCPClient({
+//   servers: {
+//     filesystem: {
+//       command: "npx",
+//       args: [
+//         "-y",
+//         "@modelcontextprotocol/server-filesystem",
+//         "/Users/username/Downloads",
+//       ],
+//     },
+//   },
+// });
 
 
 export const mastra = new Mastra({
@@ -38,7 +39,7 @@ export const mastra = new Mastra({
   storage: sharedPgStore,
   logger: new PinoLogger({
     name: "Mastra",
-    // level: env.NODE_ENV === "development" ? "info" : "info",
+    level: env.NODE_ENV === "development" ? "debug" : "info",
   }),
   // Configure server settings for production
   vectors: {
@@ -47,6 +48,11 @@ export const mastra = new Mastra({
   server: {
     port: parseInt(env.MASTRA_PORT),
     host: "localhost",
+    apiRoutes: [
+      chatRoute({
+        path: '/chat/*',
+        agent: "athenaAI",
+      }),
+    ],
   },
-
 });

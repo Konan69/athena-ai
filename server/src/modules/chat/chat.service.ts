@@ -14,6 +14,7 @@ import {
   RenameChatInput,
   DeleteChatInput,
 } from "./validators/chatValidator";
+import { convertMessages } from '@mastra/core/agent';
 
 export class ChatService {
   private db: Database;
@@ -34,16 +35,14 @@ export class ChatService {
 
     // Process with memory using the single message content
     // Mastra will create the thread automatically if it doesn't exist
-    const stream = await agent.stream({
-      messages: effectiveMessage.content,
+    const stream = await agent.streamVNext({
+      messages: effectiveMessage.parts[0].text,
       runtimeContext,
       memory: {
         thread: threadId,
         resource: resourceId!,
       },
-    });
-
-
+    })
 
     this.db
       .update(mastraThreads)
@@ -52,7 +51,7 @@ export class ChatService {
       })
       .where(eq(mastraThreads.id, threadId));
 
-    return stream;
+    return stream
   }
 
 
@@ -104,7 +103,7 @@ export class ChatService {
       threadId: input.threadId,
       resourceId: input.userId,
     });
-    return messages;
+    return convertMessages(messages.uiMessages).to('AIV5.UI');
   }
 
 

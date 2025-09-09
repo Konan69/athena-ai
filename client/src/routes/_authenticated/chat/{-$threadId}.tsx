@@ -22,7 +22,7 @@ import { RefreshCcw as RefreshCcwIcon, Copy as CopyIcon } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
 import { env } from "@/config/env";
 import { toast } from "sonner";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState, Fragment } from "react";
 import { useQueryErrorResetBoundary, useQuery } from "@tanstack/react-query";
 import { trpc, queryClient } from "@/integrations/tanstack-query/root-provider";
 
@@ -35,6 +35,7 @@ import {
 import { AVAILABLE_AGENTS } from "@/types/agents";
 
 import { EmptyChatState } from "@/components/ai-elements/empty-chat-state";
+import { DefaultChatTransport } from "ai";
 export const Route = createFileRoute("/_authenticated/chat/{-$threadId}")({
   component: ChatPage,
   errorComponent: ({ error, reset }) => {
@@ -98,7 +99,9 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
   const threadReady = chatStore.threadReady[effectiveThreadId] || false;
   const isCreatingAndSending = chatStore.isCreatingAndSending;
 
-  const chatSubmitRef = useRef<(() => void) | null>(null);
+  // Track pending navigation for new threads
+  const pendingNavigationRef = useRef<string | null>(null);
+
   const extraPayloadRef = useRef<{
     pastedContents?: string[];
     fileTexts?: { name: string; text: string }[];
@@ -114,52 +117,60 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
       threadId: effectiveThreadId ?? "",
     }),
     enabled: !!threadId && threadReady && !isCreatingAndSending, // Only fetch when thread exists, is ready, and not creating
-    placeholderData: (prev) => prev,
-    retry: (failureCount) => {
+    placeholderData: (prev:any) => prev,
+    retry: (failureCount:any) => {
       // Retry up to 3 times with exponential backoff to handle race conditions
       return failureCount < 3;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    retryDelay: (attemptIndex:any) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
+
+  const [input, setInput] = useState('');
 
   const {
     messages,
-    input,
-    handleSubmit,
+    setMessages,
     status,
     stop,
-    setInput,
-    append,
+    sendMessage,
+    regenerate,
     error,
   } = useChat({
+    transport: new DefaultChatTransport({
+      api: `${env.VITE_API_BASE_URL}/api/chat`,
+      credentials: 'include',
+      // Only send the last message to the server
+      prepareSendMessagesRequest({ messages, id }) {
+        return {
+          body: {
+            message: messages[messages.length - 1],
+            threadId: effectiveThreadId,
+            agentId: extraPayloadRef.current.agentId,
+            extras: {
+              pastedContents: extraPayloadRef.current.pastedContents ?? [],
+              fileTexts: extraPayloadRef.current.fileTexts ?? [],
+            },
+          }
+        };
+      }
+    }),
     id: effectiveThreadId,
-    api: `${env.VITE_API_BASE_URL}/api/chat`,
-    credentials: "include",
-    initialMessages: data?.uiMessages ?? [],
-
-    experimental_prepareRequestBody: (request) => {
-      const lastMessage =
-        request.messages.length > 0
-          ? request.messages[request.messages.length - 1]
-          : null;
-
-      const activeThreadId = effectiveThreadId;
-
-      return {
-        message: lastMessage,
-        threadId: activeThreadId,
-        agentId: extraPayloadRef.current.agentId,
-        extras: {
-          pastedContents: extraPayloadRef.current.pastedContents ?? [],
-          fileTexts: extraPayloadRef.current.fileTexts ?? [],
-        },
-      };
-    },
+    messages: data,
 
     onFinish: async () => {
       // For new threads, give Mastra extra time to persist the thread
       if (!threadId) {
         await new Promise((resolve) => setTimeout(resolve, 3500));
+
+        // Navigate to the new thread URL now that message was successfully sent
+        if (pendingNavigationRef.current) {
+          router.navigate({
+            to: "/chat/{-$threadId}",
+            params: { threadId: pendingNavigationRef.current },
+            replace: true,
+          });
+          pendingNavigationRef.current = null;
+        }
       }
 
       // Mark thread as ready for message fetching
@@ -174,13 +185,23 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
       });
     },
 
-    onError: () => {
+    onError: (error) => {
       // Reset creating state on error
       chatStore.setIsCreatingAndSending(false);
+      // Clear any pending navigation since we failed
+      pendingNavigationRef.current = null;
+      // Show error to user
+      console.error("Chat error:", error);
+      toast.error(error.message || "An error occurred. Please try again.");
     },
-  });
+  })
 
-  chatSubmitRef.current = handleSubmit;
+  // Synchronize messages when data changes
+  useEffect(() => {
+    if (data && data.length > 0 && messages.length === 0) {
+      setMessages(data);
+    }
+  }, [data, messages.length, setMessages]);
 
   const handleSubmitMessage = async (
     composedInput: string,
@@ -189,34 +210,33 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
     const contentToSend = composedInput ?? "";
 
     if (!threadId) {
-      // First message: Let Mastra create the thread automatically with title generation
       chatStore.setIsCreatingAndSending(true);
-
-      try {
-        const newThreadId = effectiveThreadId;
-
-        // Navigate to the thread URL first for better UX
-        router.navigate({
-          to: "/chat/{-$threadId}",
-          params: { threadId: newThreadId },
-          replace: true,
-        });
-
-        // Send the message - Mastra will create the thread automatically
-        await append({ role: "user", content: contentToSend });
-        setInput("");
-      } catch (error) {
-        console.error("Failed to send message:", error);
-        toast.error("Failed to send message. Please try again.");
-      } finally {
-        chatStore.setIsCreatingAndSending(false);
-      }
-      return;
+      pendingNavigationRef.current = effectiveThreadId;
     }
 
-    // Existing thread - just append message
-    await append({ role: "user", content: contentToSend });
-    setInput("");
+    console.log(contentToSend, "contentToSend");
+    try {
+      await sendMessage(
+        { text: contentToSend },
+        {
+          body: {
+            threadId: effectiveThreadId,
+            agentId: extraPayloadRef.current.agentId,
+            extras: {
+              pastedContents: extraPayloadRef.current.pastedContents ?? [],
+              fileTexts: extraPayloadRef.current.fileTexts ?? [],
+            },
+          },
+        }
+      );
+      
+      setInput("");
+    } catch (error) {
+      if (threadId) {
+        console.error("Failed to send message:", error);
+        toast.error("Failed to send message. Please try again.");
+      }
+    }
   };
 
   const handleClaudeSend = (
@@ -264,8 +284,7 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
   );
 
   // Show loading state when creating and sending first message or when message is being processed
-  const shouldShowLoading =
-    isCreatingAndSending || (status === "submitted" && !error);
+  const shouldShowLoading = (status === "submitted" && !error);
 
   return (
     <div className="flex flex-col h-screen">
@@ -273,7 +292,7 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
       <div className="flex-1 min-h-0">
         <Conversation className="w-full h-full">
           <ConversationContent className="h-full">
-            <div className="max-w-3xl mx-auto w-full px-4 pt-2 space-y-4">
+            <div className="max-w-[60%] mx-auto w-full py-2 space-y-4">
               {isErrorFetching || error ? (
                 <ErrorState
                   message={
@@ -289,7 +308,8 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
                     <Skeleton className="h-4 w-2/3" />
                   </div>
                 </div>
-              ) : messages.length === 0 && !isCreatingAndSending ? (
+              ) : messages.length === 0 && !isLoading && !isCreatingAndSending ? (
+
                 <EmptyChatState
                   onSuggestionClick={handleSuggestionClick}
                   threadId={threadId}
@@ -297,59 +317,65 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
               ) : (
                 <>
                   {messages
-                    .filter(
-                      (m) =>
-                        !(
-                          m.role === "user" &&
-                          (!m.content || m.content.trim() === "")
-                        )
-                    )
                     .map((message, messageIndex) => {
-                      const isLastMessage =
-                        messageIndex === messages.length - 1;
                       return (
-                        <div key={message.id}>
-                          <Message
-                            from={
-                              message.role as "user" | "assistant" | "system"
-                            }
-                          >
-                            <MessageContent>
-                              {message.role === "assistant" ? (
-                                <Response key={message.id}>
-                                  {message.content}
-                                </Response>
-                              ) : (
-                                message.content
-                              )}
-                            </MessageContent>
+                        <div key={message.id} className={`flex gap-3  ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                          <div className="flex items-center justify-center">
+                            {message.role === "assistant" && (
+                            <MessageAvatar
+                              src="" // Assistant doesn't need an avatar
+                              name="Assistant"
+                            />
+                          )}
+                          </div>
+                          <div className="flex-1">
+                            {message.parts.map((part, i) => {
+                              switch (part.type) {
+                                case 'text':
+                                  return (
+                                    <Fragment key={`${message.id}-${i}`}>
+                                      <div className="flex items-start gap-3">
+                                        <div className="flex-1">
+                                          <Message from={message.role}>
+                                            <MessageContent>
+                                              <Response>
+                                                {part.text}
+                                              </Response>
+                                            </MessageContent>
+                                          </Message>
+                                          {message.role === 'assistant' && i === message.parts.length - 1 && (
+                                            <Actions className="-mt-6 pl-1">
+                                              <Action
+                                                onClick={() => regenerate()}
+                                                label="Retry"
+                                              >
+                                                <RefreshCcwIcon className="size-3" />
+                                              </Action>
+                                              <Action
+                                                onClick={() =>
+                                                  navigator.clipboard.writeText(part.text)
+                                                }
+                                                label="Copy"
+                                              >
+                                                <CopyIcon className="size-3" />
+                                              </Action>
+                                            </Actions>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </Fragment>
+                                  );
+                              }
+                            })}
+                          </div>
+                          <div className="flex items-center justify-center">
                             {message.role === "user" && (
                               <MessageAvatar
                                 src={user?.image || ""}
                                 name={user?.name}
                               />
                             )}
-                          </Message>
-                          {message.role === "assistant" && isLastMessage && (
-                            <Actions className="mt-[-25px]">
-                              <Action
-                                onClick={() => {
-                                  /* TODO: regenerate */
-                                }}
-                                label="Retry"
-                              >
-                                <RefreshCcwIcon className="size-3" />
-                              </Action>
-                              <Action
-                                onClick={() =>
-                                  navigator.clipboard.writeText(message.content)
-                                }
-                                label="Copy"
-                              >
-                                <CopyIcon className="size-3" />
-                              </Action>
-                            </Actions>
-                          )}
+                          </div>
                         </div>
                       );
                     })}
@@ -370,7 +396,7 @@ export function Chat({ threadId }: { threadId: string | undefined }) {
         </Conversation>
       </div>
 
-      <div className="max-w-4xl mx-auto w-full px-4 mb-8">
+      <div className="max-w-4xl mx-auto w-full bg-transparent px-4 mb-8">
         <ClaudeChatInput
           onSendMessage={handleClaudeSend}
           agents={AVAILABLE_AGENTS}

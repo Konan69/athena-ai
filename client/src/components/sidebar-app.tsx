@@ -348,6 +348,7 @@ export function SidebarApp({ ...props }: ComponentProps<typeof Sidebar>) {
   const currentThreadId = useMatch({
     from: "/_authenticated/chat/{-$threadId}",
     select: (match) => match.params.threadId,
+    shouldThrow: false,
   });
   const handleNewChat = () => {
     navigate({

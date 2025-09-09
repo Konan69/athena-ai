@@ -4,6 +4,7 @@ import { chatService } from "../chat.service";
 import { createApp, createRuntimeContext } from "../../../lib/factory";
 
 
+
 export const validateChatRequest = zValidator("json", chatRequestSchema);
 
 const chatRouter = createApp();
@@ -31,26 +32,12 @@ chatRouter.post("/", validateChatRequest, async (c) => {
     };
 
     const result = await chatService.processChat(request);
+    return result;
 
 
-    return new Response(result.body, {
-      status: 200,
-      headers: {
-        "X-Vercel-AI-Data-Stream": "v1",
-        "Content-Type": "text/plain; charset=utf-8",
-        "Transfer-Encoding": "chunked",
-      },
-    });
   } catch (error) {
-    if (error instanceof Error && error.message === "Missing message content") {
-      return c.json(
-        {
-          error: "Bad Request",
-          message: "Message content is required",
-        },
-        400
-      );
-    }
+    // Re-throw other errors to be handled by the error middleware
+    throw error;
   }
 });
 

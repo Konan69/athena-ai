@@ -79,3 +79,5 @@
 - [ ] Integration tests
 - [ ] E2E tests for critical flows
 - [ ] Performance testing
+
+its sendign the system prompt as first message to the agent.

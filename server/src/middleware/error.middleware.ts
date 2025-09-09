@@ -1,4 +1,4 @@
-  import { env } from '../config/env'
+  import { env  } from '../config/env'
 import { PostHog } from 'posthog-node'
 import { ZodError } from "zod";
 import type { ErrorHandler } from "hono";
@@ -22,21 +22,26 @@ const errorLogger = pino({
 
 // Hono's recommended ErrorHandler approach
 export const errorHandler: ErrorHandler = (err, c) => {
-  const env = c.env?.NODE_ENV || process.env?.NODE_ENV;
-  const isDevelopment = env === "development";
+
+  const isDevelopment = env.NODE_ENV === "development";
 
   // Get status code - handle different error types
   let status = 500;
   let errorMessage = "Internal Server Error";
 
   if (err instanceof HTTPException) {
-    status = err.status;
+    status = err.status || 500; // Ensure status is never 0
     errorMessage = err.message;
   } else if (err instanceof ZodError) {
     status = 400;
     errorMessage = "Validation failed";
   } else if (err instanceof Error) {
     errorMessage = err.message;
+  }
+
+  // Ensure status is always a valid HTTP status code
+  if (status < 200 || status > 599) {
+    status = 500;
   }
   const posthog = new PostHog(env.POSTHOG_PUBLIC_KEY, { host: 'https://us.i.posthog.com' })
   

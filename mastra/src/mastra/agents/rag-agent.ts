@@ -7,7 +7,7 @@ export const ragAgent = new Agent({
   name: "RAG Agent",
   instructions: ragPrompt,
   memory,
-  model: ({ runtimeContext }) =>
+  model: ({ runtimeContext }: { runtimeContext: any }) =>
     createTracedModel({ runtimeContext }),
   tools: ({ runtimeContext }) => {
     console.log("runtimeContext", runtimeContext);

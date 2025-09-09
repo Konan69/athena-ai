@@ -1,6 +1,6 @@
 export {
-  chatMessageSchema,
   chatRequestSchema,
-  type ChatMessage,
+  userModelMessageSchema,
+  type UserModelMessage,
   type ChatRequest,
 } from "./chatValidator";

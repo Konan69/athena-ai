@@ -4,7 +4,6 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { posthog } from "../../config/tracing";
 import { env } from "../../config/env";
 import type { MastraRuntimeContext } from "../../../../server/src/types";
-import type { RuntimeContext } from "@mastra/core/di";
 
 
 function promptFactory(promptName: "rag" | "athena" | "base"): string {
@@ -43,12 +42,12 @@ const openaiClient = createOpenAI({
   apiKey: env.OPENAI_API_KEY,
 });
 
-export function createTracedModel({ runtimeContext }: { runtimeContext: RuntimeContext<MastraRuntimeContext> }) {
+export function createTracedModel({ runtimeContext }: { runtimeContext: MastraRuntimeContext }) {
   return withTracing(openaiClient("gpt-4o"), posthog, {
-    posthogDistinctId: runtimeContext.get("userId"),
+    posthogDistinctId: runtimeContext.userId,
     posthogTraceId: "trace_123", // TODO: Add trace id
-    posthogProperties: { conversationId: runtimeContext.get("threadId") }, // TODO: Add conversation id
+    posthogProperties: { conversationId: runtimeContext.threadId },
     posthogPrivacyMode: false,
-    posthogGroups: { company: runtimeContext.get("organizationId") },
+    posthogGroups: { company: runtimeContext.organizationId },
   });
 }

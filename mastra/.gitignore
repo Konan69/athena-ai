@@ -1,7 +1,7 @@
 output.txt
 node_modules
-dist
-.mastra
+# dist
+# .mastra
 .env.development
 .env
 *.db

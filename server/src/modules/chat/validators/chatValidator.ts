@@ -3,13 +3,21 @@ import { MastraRuntimeContext } from "../../../types";
 import { RuntimeContext } from "@mastra/core/di";
 import { AgentIds } from "@/src/types/agents";
 
-export const chatMessageSchema = z.object({
-  role: z.enum(["system", "user", "assistant"]),
-  content: z.string(),
+export const userModelMessageSchema = z.object({
+  parts: z.tuple([
+    z.object({
+      type: z.string(),
+      text: z.string(),
+    }),
+  ]),
+  id: z.string(),
+  role: z.string(),
 });
 
+
+
 export const chatRequestSchema = z.object({
-  message: chatMessageSchema.nullable(), // Allow null for initial loads or errors
+  message: userModelMessageSchema.nullable(), // Allow null for initial loads or errors
   threadId: z.string().min(1, "Thread ID is required"),
   agentId: z.enum(AgentIds),
   extras: z
@@ -27,7 +35,6 @@ export const chatRequestSchema = z.object({
     .optional(),
 });
 
-export type ChatMessage = z.infer<typeof chatMessageSchema>;
 export type ChatRequest = z.infer<typeof chatRequestSchema> & {
   runtimeContext: RuntimeContext<MastraRuntimeContext>
 };
@@ -63,6 +70,7 @@ export const deleteChatInputSchema = z.object({
 });
 
 // Export types
+export type UserModelMessage = z.infer<typeof userModelMessageSchema>;
 export type CreateChatInput = z.infer<typeof createChatInputSchema>;
 export type GetChatsInput = z.infer<typeof getChatsInputSchema>;
 export type GetChatMessagesInput = z.infer<typeof getChatMessagesInputSchema>;

@@ -12,10 +12,20 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Users, Settings } from "lucide-react";
 import { CreateOrganizationDialog } from "@/components/create-organization-dialog";
 import { Link } from "@tanstack/react-router";
-import { trpc } from "@/integrations/tanstack-query/root-provider";
-import { useSuspenseQuery } from "@tanstack/react-query";
 export const Route = createFileRoute("/_authenticated/organizations/")({
   component: OrganizationsPage,
+  loader: async ({ context }) => {
+    const trpc = context.trpc;
+    const qc = context.queryClient;
+    const data = await qc.ensureQueryData(
+      trpc.organization.getUserOrganizations.queryOptions()
+    );
+    return { data };
+  },
+  pendingComponent: () => <div>Loading...</div>,
+  errorComponent: ({ error, reset }) => {
+    return <div>Error: {error.message}</div>;
+  },
 });
 
 const getRoleColor = (role: string) => {
@@ -33,13 +43,7 @@ const getRoleColor = (role: string) => {
 
 function OrganizationsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const { data: organizations, error: organizationsError } = useSuspenseQuery(
-    trpc.organization.getUserOrganizations.queryOptions()
-  );
-
-  if (organizationsError) {
-    return <div>Error: {organizationsError.message}</div>;
-  }
+  const { data: organizations} = Route.useLoaderData();
 
   return (
     <div className="flex h-full">

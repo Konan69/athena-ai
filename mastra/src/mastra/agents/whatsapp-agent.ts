@@ -8,13 +8,13 @@ import type { Agent as AgentConfig } from "@athena-ai/server/types/agents";
 export const whatsappAgent = new Agent({
   name: "WhatsApp Agent",
   instructions: ({ runtimeContext }) => {
-    const agent = runtimeContext.get("agent") as AgentConfig;
+    const agent = (runtimeContext as any).agent as AgentConfig;
     if (!agent) {
       return "You are a helpful WhatsApp assistant.";
     }
     return createWhatsAppAgentPrompt(agent);
   },
-  model: ({ runtimeContext }) =>
+  model: ({ runtimeContext }: { runtimeContext: any }) =>
     createTracedModel({ runtimeContext }),
   tools: { vectorQueryTool },
   memory

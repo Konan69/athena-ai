@@ -17,6 +17,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),
+      "@athena-ai/server": resolve(__dirname, "../server/src/server.ts"),
     },
+  },
+  optimizeDeps: {
+    exclude: ['better-auth']
   },
 });

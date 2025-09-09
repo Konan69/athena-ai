@@ -57,7 +57,7 @@ export class AgentChatService {
     }
 
     // Execute the chat with streaming response using mastra client pattern
-    const stream = await agent.stream({
+    const stream = await agent.streamVNext({
       messages: request.message,
       runtimeContext,
       memory: {

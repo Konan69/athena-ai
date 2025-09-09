@@ -71,8 +71,8 @@ export const logger = pinoLogger({
       },
     }),
     responseTime: true,
-    onResMessage: (c) =>
-      `${c.req.method} ${c.req.path} status: ${c.res.status} body: ${c.req.raw.body}`,
+    onResMessage: (c) =>  
+      `${c.req.method} ${c.req.path} status: ${c.res.status} response: ${JSON.stringify(c.res.body)}`,
   },
 });
 

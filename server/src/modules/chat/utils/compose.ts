@@ -1,17 +1,17 @@
-import type { ChatMessage, ChatRequest } from "../validators";
+import type { UserModelMessage, ChatRequest } from "../validators";
 
 export type ChatExtras = ChatRequest["extras"];
 
 /**
- * Compose a user message by concatenating the base message content with any
+ * Compose a user message by concatenating the base message with any
  * pasted contents and extracted file texts. If the base message is empty
  * but extras exist, a new user message is created from extras only.
  */
 export function composeUserMessage(
-	baseMessage: ChatMessage | null | undefined,
+	baseMessage: UserModelMessage | null | undefined,
 	extras?: ChatExtras
-): ChatMessage {
-	const baseContent = baseMessage?.content?.trim() ?? "";
+): UserModelMessage {
+	const baseContent = baseMessage?.parts[0].text.trim() ?? "";
 
 	const pastedCombined = (extras?.pastedContents ?? [])
 		.map((s) => s.trim())
@@ -41,14 +41,14 @@ export function composeUserMessage(
 	}
 
 	if (!composedContent) {
-		return { role: "user", content: "" };
+		return { parts: [{ type: "text", text: "" }], id: "", role: "" };
 	}
 
 	if (baseMessage) {
-		return { ...baseMessage, content: composedContent };
+			return { ...baseMessage, parts: [{ type: "text", text: composedContent }], id: "", role: "" };
 	}
 
-	return { role: "user", content: composedContent } as const;
+	return { parts: [{ type: "text", text: composedContent }], id: "", role: "" } as const;
 }
 
 

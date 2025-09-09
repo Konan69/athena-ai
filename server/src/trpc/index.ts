@@ -1,7 +1,7 @@
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "./base";
 import { chatProcedures } from "../modules/chat/routes/procedures";
 import { libraryProcedures } from "../modules/library/routes/procedures";
-import { trainingEvents } from "../../src/modules/RAG";
+import { trainingEvents } from "../modules/RAG";
 import { organizationProcedures } from "../modules/organization/routes/procedures";
 import { agentProcedures } from "../modules/agents/routes/procedures";
 
