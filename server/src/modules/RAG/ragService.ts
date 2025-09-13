@@ -32,7 +32,7 @@ class RAGService {
 		this.events = EventService.instance;
 	}
 
-	// TODO: fix metadata and metadata filtering to the document using runtimeContext
+
 	// TODO: add organization tenancy
 	// TODO: add doc embedding updates for new versions of the same doc or text based docs
 
@@ -84,7 +84,13 @@ class RAGService {
 				await this.publishProgress({ orgId, jobId, stage: "embedding", currentStep: 2, totalSteps: 3, percent: 50, message: `Generating ${chunks.length} embeddings` });
 				const { embeddings, usage } = await embedMany({
 					values: chunks.map((chunk) => chunk.text),
-					model: openai.embedding("text-embedding-3-small", { dimensions: this.constants.dimensions }),
+					model: openai.embedding("text-embedding-3-small"),
+					providerOptions: {
+						openai: {
+							dimensions: this.constants.dimensions,
+							metric: this.constants.metric,
+						},
+					},
 				});
 
 				console.log("[RAGService.train] Step 6: Index vectors");

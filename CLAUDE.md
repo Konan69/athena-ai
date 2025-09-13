@@ -5,11 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Architecture
 
 Athena AI is a monorepo with three main packages:
+
 - **client/**: React 19 frontend with Vite, TanStack Router, and shadcn/ui
 - **server/**: Bun backend with Hono, Mastra AI orchestration, and PostgreSQL
 - **mastra/**: AI agents and workflows (separate package)
 
 The architecture follows a clean separation with:
+
 - Frontend uses tRPC for type-safe API calls to the backend
 - Backend uses Hono as the web framework with tRPC integration
 - Mastra handles AI agent orchestration and workflows
@@ -19,6 +21,7 @@ The architecture follows a clean separation with:
 ## Development Commands
 
 ### Common Commands
+
 ```bash
 # Install all dependencies
 pnpm install
@@ -37,6 +40,7 @@ pnpm lint
 ```
 
 ### Client Development
+
 ```bash
 # Start client only (port 3000)
 pnpm dev:client
@@ -55,6 +59,7 @@ cd client && pnpm format
 ```
 
 ### Server Development
+
 ```bash
 # Start server only (port 3000 + Mastra on 4000)
 pnpm dev:server
@@ -74,7 +79,9 @@ cd server && pnpm db:push        # Push schema changes to DB
 ```
 
 ### Database Schema
+
 The database uses Drizzle ORM with PostgreSQL. Main tables:
+
 - `user`, `account`, `session` - Authentication (Better Auth)
 - `organization`, `member`, `invitation` - Multi-tenancy
 - `mastra_threads` - AI conversation threads
@@ -86,6 +93,7 @@ Schema files are in `server/src/db/schemas/` and migrations in `server/src/db/mi
 ## Key Technology Stack
 
 ### Frontend (client)
+
 - **React 19** with TypeScript
 - **TanStack Router** for file-based routing
 - **shadcn/ui** components with Radix UI primitives
@@ -96,6 +104,7 @@ Schema files are in `server/src/db/schemas/` and migrations in `server/src/db/mi
 - **Biome** for linting and formatting
 
 ### Backend (server)
+
 - **Bun** as the JavaScript runtime
 - **Hono** as the web framework (migrated from Express)
 - **Mastra** for AI agent orchestration
@@ -106,6 +115,7 @@ Schema files are in `server/src/db/schemas/` and migrations in `server/src/db/mi
 - **Pino** for structured logging
 
 ### AI/ML Components
+
 - **OpenAI GPT-4** for language models
 - **Exa API** or **Brave Search** for web research
 - **Mastra agents** for research workflows
@@ -116,6 +126,7 @@ Schema files are in `server/src/db/schemas/` and migrations in `server/src/db/mi
 The project uses **Biome** for code formatting and linting, configured with the **Ultracite** ruleset. Key rules:
 
 ### TypeScript
+
 - No `any` or `unknown` types
 - Use `as const` instead of literal types
 - Prefer `T[]` over `Array<T>` consistently
@@ -123,12 +134,72 @@ The project uses **Biome** for code formatting and linting, configured with the 
 - No non-null assertions (`!`)
 
 ### React/JSX
+
 - Use `<>...</>` instead of `<Fragment>...</Fragment>`
 - No index-based keys in lists
 - Components must be properly typed
 - Follow accessibility rules (no `accessKey`, proper ARIA attributes)
 
+### shadcn/ui Development Rules
+
+When building or modifying user interfaces, always use the shadcn/ui MCP server tools. Follow this structured workflow:
+
+#### Planning Phase
+
+1. **Discover Assets**: Use `mcp_shadcn_list_components()` and `mcp_shadcn_list_blocks()` to see all available assets
+2. **Prioritize Blocks**: Use blocks (`mcp_shadcn_get_block()`) for complex UI patterns (login pages, calendars, dashboards). Use individual components (`mcp_shadcn_get_component()`) for specific needs
+3. **Check Registries**: Use `mcp_shadcn_get_project_registries()` to see available component registries
+
+#### Implementation Phase
+
+1. **Get Demos First**: Before using any component, call `mcp_shadcn_get_component_demo(component_name)` to understand required props and structure
+2. **Retrieve Code**: Use `mcp_shadcn_get_component()` for single components or `mcp_shadcn_get_block()` for composite blocks
+3. **Research Components**: For complex features:
+   - Break down into required components
+   - Use `mcp_shadcn_search_items_in_registries()` to verify component availability
+   - Use `mcp_shadcn_view_items_in_registries()` to get implementation details
+   - Use `mcp_shadcn_get_item_examples_from_registries()` to find relevant examples
+   - Use `mcp_shadcn_get_add_command_for_items()` to get installation commands
+4. **Audit Implementation**: Use `mcp_shadcn_get_audit_checklist()` to verify best practices
+
+#### Component Hierarchy Pattern
+
+```markdown
+## Feature: [Name]
+
+## Components Required:
+
+- form (validation and submission)
+- input (email, password fields)
+- button (submit action)
+- card (form container)
+- alert (error display)
+
+## Component Hierarchy:
+
+Card
+└── Form
+├── Label + Input (email)
+├── Label + Input (password)
+├── Button (submit)
+└── Alert (errors)
+```
+
+#### Installation Commands
+
+```bash
+# Install multiple components at once
+npx shadcn@latest add form input button card alert label
+```
+
+#### Setup Requirements
+
+- Ensure `components.json` is configured in the project root
+- Components are installed to `client/src/components/ui/`
+- Import path: `@/components/ui/{component-name}`
+
 ### General
+
 - Use `===` and `!==` for comparisons
 - No `var` declarations
 - Use `const` and `let` appropriately
@@ -138,6 +209,7 @@ The project uses **Biome** for code formatting and linting, configured with the 
 ## Environment Configuration
 
 ### Server Environment (.env in server/)
+
 ```bash
 # Core
 PORT=3000
@@ -160,6 +232,7 @@ GOOGLE_CLIENT_SECRET=your_secret
 ```
 
 ### Client Environment (.env in client/)
+
 ```bash
 VITE_API_BASE_URL=http://localhost:3000
 VITE_CLIENT_URL=http://localhost:3000
@@ -168,21 +241,26 @@ VITE_CLIENT_URL=http://localhost:3000
 ## Testing
 
 ### Client Tests
+
 ```bash
 cd client && pnpm test          # Run tests once
 cd client && pnpm test:watch     # Watch mode
 ```
+
 Uses Vitest with React Testing Library.
 
 ### Server Tests
+
 ```bash
 cd server && pnpm test          # Run Bun tests
 cd server && pnpm test:watch    # Watch mode
 cd server && pnpm test:coverage # Coverage report
 ```
+
 Uses Bun's built-in test runner.
 
 ### Database Tests
+
 ```bash
 cd server && pnpm test:setup     # Set up test DB
 cd server && pnpm test:full      # Run full test suite
@@ -197,6 +275,7 @@ The AI system uses Mastra for orchestrating research agents:
 3. **Workflow Orchestration**: Uses Effect-TS for parallel execution
 
 Key files:
+
 - `server/src/mastra/agents/` - Agent definitions
 - `server/src/mastra/workflows/` - Workflow definitions
 - `server/src/modules/chat/` - Chat API and orchestration
@@ -204,11 +283,13 @@ Key files:
 ## API Structure
 
 ### Main Endpoints
+
 - `/api/chat` - Chat and research interface
 - `/api/download/:filename` - Download generated reports
 - `/trpc/*` - tRPC endpoints for typed API calls
 
 ### tRPC Procedures
+
 - `chat.sendMessage` - Send research query
 - `chat.getHistory` - Retrieve chat history
 - `auth.*` - Authentication procedures
@@ -216,11 +297,13 @@ Key files:
 ## Build and Deployment
 
 ### Production Build
+
 ```bash
 pnpm build  # Builds all packages
 ```
 
 ### Individual Builds
+
 ```bash
 pnpm -F @athena-ai/client build
 pnpm -F @athena-ai/server build

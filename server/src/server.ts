@@ -13,6 +13,8 @@ import { modules } from "./modules";
 import { authMiddleware } from "./middleware/auth.middleware";
 import { initializeServices } from "./config/init";
 import { posthogServerMiddleware } from "./middleware/observability";
+import { websocket } from "hono/bun";
+import { websocketRoute } from "./modules/events/websocket.route";
 
 const PORT = env.PORT;
 
@@ -35,6 +37,7 @@ export const app = createApp()
   .on(["POST", "GET"], "/api/auth/*", (c) => {
     return auth.handler(c.req.raw);
   })
+
   .use(authMiddleware)
   .use('*', posthogServerMiddleware)
 
@@ -48,6 +51,7 @@ routes;
 
 
 app
+  .route("/ws", websocketRoute)
   .use(
     "/trpc/*",
     trpcServer({
@@ -62,6 +66,7 @@ initializeServices();
 
 export default {
   fetch: app.fetch,
+  websocket,
   port: parseInt(PORT),
   idleTimeout: 30,
 };

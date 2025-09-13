@@ -18,9 +18,11 @@ export type UrlFormValues = z.infer<typeof urlSchema>;
 export function UrlTab({
   onSubmit,
   isSubmitting,
+  onCancel,
 }: {
   onSubmit: (values: UrlFormValues) => Promise<void> | void;
   isSubmitting: boolean;
+  onCancel: () => void;
 }) {
   const {
     register,
@@ -42,32 +44,50 @@ export function UrlTab({
       onSubmit={handleSubmit(async (values: UrlFormValues) => onSubmit(values))}
     >
       <div>
-        <Label htmlFor="url-input" className="text-sm font-medium">
+        <Label htmlFor="url-input" className="text-sm font-medium mb-2 block">
           Website URL
         </Label>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+          Enter the URL of the website you want to crawl and add to your knowledge base
+        </p>
         <Input
           id="url-input"
           type="url"
           {...register("url")}
-          className="mt-2"
+          placeholder="https://example.com"
+          className="mt-2 h-10 rounded-lg border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
         />
         {errors.url && (
           <p className="mt-2 text-sm text-red-500">{errors.url.message}</p>
         )}
       </div>
       <div>
-        <Label className="text-sm font-medium">Title</Label>
-        <Input {...register("title")} className="mt-2" />
+        <Label className="text-sm font-medium mb-2 block">Title</Label>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+          Give this web page a descriptive title
+        </p>
+        <Input {...register("title")} placeholder="Enter a title" className="mt-2 h-10 rounded-lg border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900" />
         {errors.title && (
           <p className="mt-2 text-sm text-red-500">{errors.title.message}</p>
         )}
       </div>
       <div>
-        <Label className="text-sm font-medium">Description</Label>
-        <Textarea {...register("description")} className="mt-2" />
+        <Label className="text-sm font-medium mb-2 block">Description</Label>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+          Briefly describe what this web page contains
+        </p>
+        <Textarea {...register("description")} placeholder="Describe this web page..." className="mt-2 min-h-[90px] rounded-lg border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900" />
       </div>
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isSubmitting}>
+      <div className="flex justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 rounded-lg border-neutral-300 dark:border-neutral-700 bg-transparent"
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting} className="h-10 rounded-lg">
           {isSubmitting ? "Submitting..." : "Import URL"}
         </Button>
       </div>

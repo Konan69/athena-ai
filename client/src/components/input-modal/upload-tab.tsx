@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, formatFileSize } from "@/lib/utils";
-import { Upload, X, Trash2 } from "lucide-react";
+import { Upload, X, Trash2, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,9 +36,11 @@ export type UploadFormValues = z.infer<typeof uploadSchema>;
 export function UploadTab({
   onSubmit,
   isSubmitting,
+  onCancel,
 }: {
   onSubmit: (values: UploadFormValues) => Promise<void> | void;
   isSubmitting: boolean;
+  onCancel: () => void;
 }) {
   const {
     register,
@@ -120,25 +122,34 @@ export function UploadTab({
         ) : (
           <div className="flex items-center justify-between gap-4 text-left">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 grid place-items-center flex-shrink-0"></div>
+              <div className="w-10 h-10 rounded-lg bg-neutral-200 dark:bg-neutral-800 grid place-items-center flex-shrink-0">
+                {isSubmitting ? (
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                ) : (
+                  <Upload className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                )}
+              </div>
               <div className="min-w-0">
                 <div className="font-medium text-neutral-900 dark:text-neutral-100 break-words">
                   {file.name}
                 </div>
                 <div className="text-xs text-neutral-600 dark:text-neutral-400">
                   {formatFileSize(file.size)}
+                  {isSubmitting && " • Uploading..."}
                 </div>
               </div>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setValue("file", undefined as unknown as File)}
-              className="text-neutral-500 hover:text-neutral-700"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            {!isSubmitting && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setValue("file", undefined as unknown as File)}
+                className="text-neutral-500 hover:text-neutral-700"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         )}
         {errors.file && (
@@ -146,28 +157,34 @@ export function UploadTab({
         )}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div>
-          <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+          <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2 block">
             Title
           </Label>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+            Give your document a clear, descriptive title
+          </p>
           <Input
             {...register("title")}
             placeholder="Enter a title"
-            className="mt-2 h-10 rounded-xl border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
+            className="h-10 rounded-lg border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
           />
           {errors.title && (
             <p className="mt-2 text-sm text-red-500">{errors.title.message}</p>
           )}
         </div>
         <div>
-          <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+          <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2 block">
             Description
           </Label>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+            Briefly describe what this document is about
+          </p>
           <Textarea
             {...register("description")}
             placeholder="Describe this document..."
-            className="mt-2 min-h-[90px] rounded-xl border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
+            className="min-h-[90px] rounded-lg border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
           />
           {errors.description && (
             <p className="mt-2 text-sm text-red-500">
@@ -176,22 +193,26 @@ export function UploadTab({
           )}
         </div>
         <div>
-          <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+          <Label className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2 block">
             Tags
+            <span className="text-neutral-500 dark:text-neutral-400 font-normal ml-1">(Optional)</span>
           </Label>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+            Add tags to help organize and find your documents later
+          </p>
           <div
-            className="mt-2 flex items-center flex-wrap gap-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-2 py-1.5"
+            className="flex items-center flex-wrap gap-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-3 min-h-[48px] transition-colors hover:border-neutral-400 dark:hover:border-neutral-600"
             onClick={() => tagInputRef.current?.focus()}
           >
             {tags.map((t, idx) => (
               <span
                 key={`${t}-${idx}`}
-                className="inline-flex items-center gap-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 px-2 py-0.5 text-xs"
+                className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 text-sm font-medium border border-blue-200 dark:border-blue-800"
               >
                 {t}
                 <button
                   type="button"
-                  className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 transition-colors rounded-full hover:bg-blue-200 dark:hover:bg-blue-800/50 p-0.5"
                   onClick={(e) => {
                     e.stopPropagation();
                     const current = getValues("tags");
@@ -206,8 +227,8 @@ export function UploadTab({
             ))}
             <input
               ref={tagInputRef}
-              placeholder={tags.length ? "" : "Type a tag and press Enter"}
-              className="flex-1 min-w-[120px] bg-transparent outline-none h-7 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+              placeholder={tags.length ? "Add another tag..." : "Type a tag and press Enter"}
+              className="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 py-1"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -233,8 +254,20 @@ export function UploadTab({
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isSubmitting}>
+      <div className="flex justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+        <Button
+          type="button"
+          variant={isSubmitting ? "destructive" : "outline"}
+          className="h-10 rounded-lg border-neutral-300 dark:border-neutral-700 bg-transparent"
+          onClick={isSubmitting ? () => {
+            // This will be handled by the parent modal
+            const abortEvent = new CustomEvent('abort-upload');
+            window.dispatchEvent(abortEvent);
+          } : onCancel}
+        >
+          {isSubmitting ? "Abort Upload" : "Cancel"}
+        </Button>
+        <Button type="submit" disabled={isSubmitting} className="h-10 rounded-lg">
           {isSubmitting ? "Uploading..." : "Upload Document"}
         </Button>
       </div>

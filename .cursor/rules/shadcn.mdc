@@ -1,13 +1,12 @@
 ---
 alwaysApply: false
+description: Shadcn Rules, When a task requires building or modifying a user interface, you must use the tools available in the shadcn-ui MCP server.
+globs: "**/*.{tsx,jsx}"
 ---
 
-General Rule\
-When a task requires building or modifying a user interface, you must use the tools available in the shadcn-ui MCP server.\
 Planning Rule\
 When planning a UI build using shadcn:\
 Discover Assets: First, use list_components() and list_blocks() to see all available assets in the MCP server.\
-Map Request to Assets: Analyze the user's request and map the required UI elements to the available components and blocks.\
 Prioritize Blocks: You should prioritize using blocks (get_block) wherever possible for common, complex UI patterns (e.g., login pages, calendars, dashboards). Blocks provide more structure and accelerate development. Use individual components (get_component) for smaller, more specific needs.\
 Implementation Rule\
 When implementing the UI:\
@@ -24,13 +23,11 @@ INPUT: User request for a complete feature/section
 STEPS:
 
 1. Call mcp**shadcn**get_project_registries
-
    - Note all available registries
    - If multiple, use appropriate or ask user
 
 2. Break down the request into components needed
    Example: "login form" needs:
-
    - Form (form validation)
    - Input (email, password fields)
    - Button (submit)
@@ -39,7 +36,6 @@ STEPS:
    - Alert (error messages)
 
 3. For EACH identified component:
-
    - Call mcp**shadcn**search_items_in_registries
    - Verify it exists in registry
    - Note the exact name
@@ -77,19 +73,16 @@ STEPS:
 
 2. FOR EACH component in the list:
    a. Call mcp**shadcn**view_items_in_registries
-
    - Get full implementation details
    - Note all file dependencies
 
    b. Call mcp**shadcn**get_item_examples_from_registries
-
    - Query: "[component]-demo"
    - Get the most relevant example
    - If form-related, get validation examples
    - If data-related, get loading state examples
 
 3. Call mcp**shadcn**get_add_command_for_items
-
    - Get installation for ALL components at once
 
 4. OUTPUT to design-docs/[task-name]/component-research.md:
@@ -128,7 +121,6 @@ STEPS:
 1. Read both input files
 
 2. Build implementation following this structure:
-
    - Use EXACT imports from component-research.md
    - Follow hierarchy from requirements.md
    - Adapt examples from research to match use case
@@ -137,7 +129,6 @@ STEPS:
    - Add error handling
 
 3. Call mcp**shadcn**get_audit_checklist
-
    - Verify your implementation follows best practices
 
 4. OUTPUT Complete implementation:

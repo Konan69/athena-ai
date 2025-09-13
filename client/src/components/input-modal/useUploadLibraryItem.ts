@@ -1,7 +1,7 @@
 import { trpc, queryClient } from "@/integrations/tanstack-query/root-provider";
 import { useMutation } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
 export type UploadCompletePayload = {
@@ -20,6 +20,7 @@ export function useUploadLibraryItem({
 	close?: () => void;
 }) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const abortControllerRef = useRef<AbortController | null>(null);
 
 	const createItemMutation = useMutation({
 		...trpc.library.createLibraryItem.mutationOptions(),
@@ -38,6 +39,8 @@ export function useUploadLibraryItem({
 	}) {
 		try {
 			setIsSubmitting(true);
+			abortControllerRef.current = new AbortController();
+
 			const allowed = new Set([
 				"application/pdf",
 				"application/msword",
@@ -47,8 +50,10 @@ export function useUploadLibraryItem({
 				"application/vnd.oasis.opendocument.text",
 			]);
 			if (!allowed.has(file.type)) {
+				console.log("Unsupported file type", file.type);
 				throw new Error("Unsupported file type");
 			}
+
 			const key = `${Date.now()}-${file.name}`;
 			const presigned = await queryClient.ensureQueryData(
 				trpc.library.getPresignedUrl.queryOptions({
@@ -56,16 +61,22 @@ export function useUploadLibraryItem({
 					contentType: file.type as never,
 				})
 			);
+
+			// Upload file with abort capability
 			await axios.put(presigned.uploadUrl, file, {
 				headers: { "Content-Type": file.type },
+				signal: abortControllerRef.current.signal,
 			});
-			const fileSize = file.size
+
+			const fileSize = file.size;
 			const created = await createItemMutation.mutateAsync({
 				title,
 				description,
 				uploadLink: presigned.objectKey,
 				fileSize,
+				tags: tags ?? [],
 			});
+
 			// Optimistically reflect new processing item in cache
 			queryClient.setQueryData(trpc.library.getLibraryItems.queryKey(), (prev: any) => {
 				const optimistic = {
@@ -81,6 +92,7 @@ export function useUploadLibraryItem({
 				if (!Array.isArray(prev)) return [optimistic];
 				return [...prev, optimistic];
 			});
+
 			onComplete?.({
 				title,
 				description,
@@ -88,21 +100,33 @@ export function useUploadLibraryItem({
 				tags,
 				uploadLink: presigned.objectKey,
 			});
+
 			await queryClient.invalidateQueries({
 				queryKey: trpc.library.getLibraryItems.queryKey(),
 			});
+
 			close?.();
 		} catch (e) {
 			if (e instanceof AxiosError) {
-				const message = e.message
-				toast.error(message)
-				throw e
+				const message = e.message;
+				toast.error(message);
+				throw e;
 			}
 			const message = e instanceof Error ? e.message : "Upload failed";
 			toast.error(message);
 			throw e;
 		} finally {
 			setIsSubmitting(false);
+			abortControllerRef.current = null;
+		}
+	}
+
+	function abortUpload() {
+		if (abortControllerRef.current) {
+			abortControllerRef.current.abort();
+			abortControllerRef.current = null;
+			setIsSubmitting(false);
+			toast.info("Upload cancelled");
 		}
 	}
 
@@ -110,7 +134,7 @@ export function useUploadLibraryItem({
 		// reserved for future external resets
 	}
 
-	return { isSubmitting, handleUploadSubmit, resetState };
+	return { isSubmitting, handleUploadSubmit, abortUpload, resetState };
 }
 
 

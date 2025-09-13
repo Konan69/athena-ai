@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UploadTab } from "./input-modal/upload-tab.tsx";
 import { UrlTab } from "./input-modal/url-tab.tsx";
+import { TextSnippetTab } from "./input-modal/text-snippet-tab.tsx";
 import { useUploadLibraryItem } from "./input-modal/useUploadLibraryItem";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Upload, Link as LinkIcon } from "lucide-react";
+import { X, Upload, Link as LinkIcon, FileText } from "lucide-react";
 
 interface InputModalProps {
   isOpen: boolean;
@@ -27,12 +28,24 @@ export default function InputModal({
   onComplete,
 }: InputModalProps) {
   const [activeTab, setActiveTab] = useState("upload");
-  const { isSubmitting, handleUploadSubmit, resetState } = useUploadLibraryItem(
+  const { isSubmitting, handleUploadSubmit, abortUpload, resetState } = useUploadLibraryItem(
     {
       onComplete,
       close: () => onOpenChange(false),
     }
   );
+
+  // Handle abort event from upload tab
+  useEffect(() => {
+    const handleAbort = () => {
+      abortUpload?.();
+    };
+    
+    window.addEventListener('abort-upload', handleAbort);
+    return () => {
+      window.removeEventListener('abort-upload', handleAbort);
+    };
+  }, [abortUpload]);
 
   return (
     <AnimatePresence>
@@ -79,7 +92,7 @@ export default function InputModal({
                   onValueChange={setActiveTab}
                   className="mb-6 sm:mb-8"
                 >
-                  <TabsList className="grid w-full grid-cols-1 rounded-xl p-1 bg-neutral-100 dark:bg-neutral-800">
+                  <TabsList className="grid w-full grid-cols-3 rounded-xl p-1 bg-neutral-100 dark:bg-neutral-800">
                     <TabsTrigger
                       value="upload"
                       className="rounded-lg font-medium text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-neutral-900 dark:data-[state=active]:bg-neutral-700 dark:data-[state=active]:text-neutral-100"
@@ -88,14 +101,22 @@ export default function InputModal({
                       <span className="hidden sm:inline">Upload File</span>
                       <span className="sm:hidden">Upload</span>
                     </TabsTrigger>
-                    {/* <TabsTrigger
+                    <TabsTrigger
                       value="url"
                       className="rounded-lg font-medium text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-neutral-900 dark:data-[state=active]:bg-neutral-700 dark:data-[state=active]:text-neutral-100"
                     >
                       <LinkIcon className="w-4 h-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">Import via URL</span>
-                      <span className="sm:hidden">URL</span>
-                    </TabsTrigger> */}
+                      <span className="hidden sm:inline">Web Crawl</span>
+                      <span className="sm:hidden">Web</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="text"
+                      className="rounded-lg font-medium text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-neutral-900 dark:data-[state=active]:bg-neutral-700 dark:data-[state=active]:text-neutral-100"
+                    >
+                      <FileText className="w-4 h-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Text Snippet</span>
+                      <span className="sm:hidden">Text</span>
+                    </TabsTrigger>
                   </TabsList>
 
                   {/* Upload tab */}
@@ -119,6 +140,7 @@ export default function InputModal({
                                 tags: values.tags,
                               });
                             }}
+                            onCancel={() => onOpenChange(false)}
                           />
                         </motion.div>
                       )}
@@ -141,6 +163,30 @@ export default function InputModal({
                             onSubmit={async () => {
                               // TODO: implement URL import flow when backend is ready
                             }}
+                            onCancel={() => onOpenChange(false)}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </TabsContent>
+
+                  {/* Text snippet tab */}
+                  <TabsContent value="text" className="mt-6">
+                    <AnimatePresence mode="wait">
+                      {activeTab === "text" && (
+                        <motion.div
+                          key="tab-text"
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <TextSnippetTab
+                            isSubmitting={isSubmitting}
+                            onSubmit={async () => {
+                              // TODO: implement text snippet import flow when backend is ready
+                            }}
+                            onCancel={() => onOpenChange(false)}
                           />
                         </motion.div>
                       )}
@@ -148,20 +194,7 @@ export default function InputModal({
                   </TabsContent>
                 </Tabs>
 
-                {/* Footer actions */}
-                <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-5 mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-800">
-                  <Button
-                    variant="outline"
-                    className="rounded-xl px-4 sm:px-6 h-12 border-neutral-300 dark:border-neutral-700 bg-transparent text-sm flex items-center justify-center order-2 sm:order-1"
-                    onClick={() => {
-                      // close only; tab forms manage their own state
-                      onOpenChange(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  {/* Submit buttons are handled inside each tab's form */}
-                </div>
+                {/* Tab forms handle their own submit buttons */}
               </CardContent>
             </Card>
             <style>{`

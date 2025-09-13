@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/integrations/tanstack-query/root-provider";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
@@ -27,6 +27,19 @@ export const Route = createFileRoute(
   "/_authenticated/organizations/$orgId/members/"
 )({
   component: OrganizationMembersPage,
+  loader: async ({ context, params }) => {
+    const { orgId } = params;
+    const trpc = context.trpc;
+    const qc = context.queryClient;
+    const data = await qc.ensureQueryData(
+      trpc.organization.getOrganizationMembers.queryOptions({ organizationId: orgId })
+    );
+    return { data };
+  },
+  pendingComponent: () => <div>Loading...</div>,
+  errorComponent: ({ error, reset }) => {
+    return <div>Error: {error.message}</div>;
+  },
 });
 
 const getRoleIcon = (role: string) => {
@@ -56,15 +69,8 @@ const getRoleColor = (role: string) => {
 };
 
 function OrganizationMembersPage() {
-  const { orgId } = Route.useParams();
-  const { data: membersData, error: membersError } = useSuspenseQuery(
-    trpc.organization.getOrganizationMembers.queryOptions({
-      organizationId: orgId,
-    })
-  );
-  if (membersError) {
-    return <div>Error: {membersError.message}</div>;
-  }
+  const { data: membersData } = Route.useLoaderData();
+
 
   const handleRoleChange = (memberId: string, newRole: string) => {
     // todo
