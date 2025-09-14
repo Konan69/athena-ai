@@ -133,6 +133,9 @@ export default function InputModal({
                           <UploadTab
                             isSubmitting={isSubmitting}
                             onSubmit={async (values) => {
+                              if (!values.file) {
+                                return;
+                              }
                               await handleUploadSubmit({
                                 file: values.file,
                                 title: values.title,

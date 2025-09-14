@@ -10,7 +10,7 @@ import { FileText } from "lucide-react";
 const textSnippetSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string().min(1, "Content is required").max(50000, "Content too long (max 50,000 characters)"),
-  description: z.string().optional().default(""),
+  description: z.string().default(""),
   tags: z.array(z.string()),
 });
 

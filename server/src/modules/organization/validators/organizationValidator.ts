@@ -23,9 +23,7 @@ export const createOrganizationSchema = z.object({
 
 export const inviteMemberSchema = z.object({
 	email: z.string().email("Must be a valid email address"),
-	role: z.enum(["member", "admin"], {
-		errorMap: () => ({ message: "Role must be either 'member' or 'admin'" }),
-	}),
+	role: z.enum(["member", "admin"]),
 });
 
 export const acceptInvitationSchema = z.object({

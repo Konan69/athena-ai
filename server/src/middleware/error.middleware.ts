@@ -76,7 +76,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
         stack: err.stack
       }),
       ...(err instanceof ZodError && {
-        details: err.errors
+        details: err.issues
       }),
     },
     status as any

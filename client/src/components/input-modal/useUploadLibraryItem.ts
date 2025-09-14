@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import type{ SupportedMimeType } from "@athena-ai/server/types";
 
 export type UploadCompletePayload = {
 	title: string;
@@ -40,25 +41,26 @@ export function useUploadLibraryItem({
 		try {
 			setIsSubmitting(true);
 			abortControllerRef.current = new AbortController();
-
-			const allowed = new Set([
-				"application/pdf",
-				"application/msword",
-				"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-				"text/markdown",
-				"text/plain",
-				"application/vnd.oasis.opendocument.text",
-			]);
-			if (!allowed.has(file.type)) {
-				console.log("Unsupported file type", file.type);
-				throw new Error("Unsupported file type");
+			const key = `${Date.now()}-${file.name}`;
+			// Validate and get MIME type
+			const validMimeTypes: SupportedMimeType[] = [
+				'application/pdf',
+				'application/msword',
+				'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+				'text/markdown',
+				'text/plain',
+				'text/csv',
+				'application/vnd.oasis.opendocument.text',
+			];
+			
+			if (!validMimeTypes.includes(file.type as SupportedMimeType)) {
+				throw new Error("Unsupported file type. Please upload PDF, DOC, DOCX, TXT, MD, CSV, or ODT files");
 			}
 
-			const key = `${Date.now()}-${file.name}`;
 			const presigned = await queryClient.ensureQueryData(
 				trpc.library.getPresignedUrl.queryOptions({
 					key,
-					contentType: file.type as never,
+					contentType: file.type as SupportedMimeType,
 				})
 			);
 

@@ -8,26 +8,28 @@ import { Upload, X, Trash2, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { SupportedMimeType } from "@athena-ai/server/types";
 
 const uploadSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
-  tags: z.array(z.string()),
+  tags: z.array(z.string()).default([]),
   file: z
     .instanceof(File)
-    .refine((f) => f.size <= 10 * 1024 * 1024, "Max 10MB")
+    .optional()
+    .refine((file) => !file || file.size > 0, "File is required")
+    .refine((file) => !file || file.size <= 10 * 1024 * 1024, "Max 10MB")
     .refine(
-      (f) =>
-        /\.(pdf|docx|txt|md|doc|csv)$/i.test(f.name) &&
-        [
-          "application/pdf",
-          "application/msword",
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          "text/markdown",
-          "text/plain",
-          "application/vnd.oasis.opendocument.text",
-        ].includes(f.type),
-      "Unsupported type"
+      (file) => !file || [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/markdown',
+        'text/plain',
+        'text/csv',
+        'application/vnd.oasis.opendocument.text',
+      ].includes(file.type),
+      "Unsupported file type. Please upload PDF, DOC, DOCX, TXT, MD, CSV, or ODT files"
     ),
 });
 
@@ -51,7 +53,7 @@ export function UploadTab({
     getValues,
   } = useForm<UploadFormValues>({
     resolver: zodResolver(uploadSchema),
-    defaultValues: { title: "", description: "", tags: [] as string[] },
+    defaultValues: { title: "", description: "", tags: [] },
   });
 
   const tags = watch("tags");
@@ -78,8 +80,11 @@ export function UploadTab({
         onDrop={(e) => {
           e.preventDefault();
           const f = e.dataTransfer.files?.[0];
-          if (!f) return;
-          setValue("file", f, { shouldValidate: true });
+          if (f) {
+            setValue("file", f, { shouldValidate: true });
+          } else {
+            setValue("file", null as any, { shouldValidate: true });
+          }
         }}
         className={cn(
           "border-2 border-dashed rounded-xl p-8 text-center",
@@ -105,8 +110,9 @@ export function UploadTab({
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (!f) return;
-                  setValue("file", f, { shouldValidate: true });
+                  if (f) {
+                    setValue("file", f, { shouldValidate: true });
+                  }
                 }}
               />
               <Button
@@ -144,7 +150,14 @@ export function UploadTab({
                 type="button"
                 variant="ghost"
                 size="icon"
-                onClick={() => setValue("file", undefined as unknown as File)}
+                onClick={() => {
+                  setValue("file", undefined, { shouldValidate: true });
+                  // Clear file input
+                  const fileInput = document.getElementById('file-input') as HTMLInputElement;
+                  if (fileInput) {
+                    fileInput.value = '';
+                  }
+                }}
                 className="text-neutral-500 hover:text-neutral-700"
               >
                 <Trash2 className="w-4 h-4" />
@@ -204,7 +217,7 @@ export function UploadTab({
             className="flex items-center flex-wrap gap-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-3 min-h-[48px] transition-colors hover:border-neutral-400 dark:hover:border-neutral-600"
             onClick={() => tagInputRef.current?.focus()}
           >
-            {tags.map((t, idx) => (
+            {tags.map((t: string, idx: number) => (
               <span
                 key={`${t}-${idx}`}
                 className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 text-sm font-medium border border-blue-200 dark:border-blue-800"
@@ -216,7 +229,7 @@ export function UploadTab({
                   onClick={(e) => {
                     e.stopPropagation();
                     const current = getValues("tags");
-                    const next = current.filter((x) => x !== t);
+                    const next = current.filter((x: string) => x !== t);
                     setValue("tags", next, { shouldDirty: true });
                   }}
                   aria-label={`Remove ${t}`}

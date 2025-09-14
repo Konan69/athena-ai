@@ -50,4 +50,4 @@ export type MastraRuntimeContext = {
   organizationId: string;
 };
 
-export type { LibraryItem } from "./library";
+export type { LibraryItem, SupportedMimeType } from "./library";
